@@ -1,0 +1,540 @@
+<template>
+  <div class="job-container">
+    <!-- 搜索区域 -->
+    <el-card shadow="never" class="search-card">
+      <el-form :model="queryParams" inline>
+        <el-form-item label="职位名称">
+          <el-input
+            v-model="queryParams.jobName"
+            placeholder="请输入职位名称"
+            clearable
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
+        <el-form-item label="职位状态">
+          <el-select v-model="queryParams.status" placeholder="全部" clearable style="width: 120px">
+            <el-option label="招聘中" :value="1" />
+            <el-option label="已暂停" :value="0" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>
+            搜索
+          </el-button>
+          <el-button @click="handleReset">
+            <el-icon><Refresh /></el-icon>
+            重置
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <!-- 操作区域 -->
+    <el-card shadow="never" class="table-card">
+      <template #header>
+        <div class="card-header">
+          <span>职位列表</span>
+          <el-button type="primary" @click="handleAdd">
+            <el-icon><Plus /></el-icon>
+            新增职位
+          </el-button>
+        </div>
+      </template>
+
+      <el-table :data="jobList" v-loading="loading" stripe>
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="jobName" label="职位名称" min-width="150" />
+        <el-table-column prop="company" label="公司名称" min-width="150" />
+        <el-table-column label="薪资范围" width="150">
+          <template #default="{ row }">
+            {{ row.salaryMin }}-{{ row.salaryMax }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="workAddress" label="工作地点" min-width="120" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-switch
+              v-model="row.status"
+              :active-value="1"
+              :inactive-value="0"
+              @change="handleStatusChange(row)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
+            <el-button type="primary" link @click="handlePreview(row)">预览</el-button>
+            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-pagination
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="fetchJobList"
+        @current-change="fetchJobList"
+      />
+    </el-card>
+
+    <!-- 新增/编辑弹窗 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="800px"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="100px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="职位名称" prop="jobName">
+              <el-input v-model="formData.jobName" placeholder="请输入职位名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="公司名称" prop="company">
+              <el-input v-model="formData.company" placeholder="请输入公司名称" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="薪资下限" prop="salaryMin">
+              <el-input-number v-model="formData.salaryMin" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="薪资上限" prop="salaryMax">
+              <el-input-number v-model="formData.salaryMax" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="工作地点" prop="workAddress">
+              <el-input v-model="formData.workAddress" placeholder="请输入工作地点" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="学历要求" prop="education">
+              <el-select v-model="formData.education" placeholder="请选择学历要求">
+                <el-option label="不限" value="不限" />
+                <el-option label="初中" value="初中" />
+                <el-option label="高中" value="高中" />
+                <el-option label="大专" value="大专" />
+                <el-option label="本科" value="本科" />
+                <el-option label="硕士" value="硕士" />
+                <el-option label="博士" value="博士" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="工作经验" prop="experience">
+              <el-select v-model="formData.experience" placeholder="请选择工作经验">
+                <el-option label="不限" value="不限" />
+                <el-option label="应届生" value="应届生" />
+                <el-option label="1-3年" value="1-3年" />
+                <el-option label="3-5年" value="3-5年" />
+                <el-option label="5-10年" value="5-10年" />
+                <el-option label="10年以上" value="10年以上" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="招聘人数" prop="recruitCount">
+              <el-input-number v-model="formData.recruitCount" :min="1" :max="999" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系人" prop="contactName">
+              <el-input v-model="formData.contactName" placeholder="请输入联系人" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="contactPhone">
+              <el-input v-model="formData.contactPhone" placeholder="请输入联系电话" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系邮箱" prop="contactEmail">
+              <el-input v-model="formData.contactEmail" placeholder="请输入联系邮箱" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="岗位职责" prop="responsibilities">
+          <el-input
+            v-model="formData.responsibilities"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入岗位职责"
+          />
+        </el-form-item>
+        <el-form-item label="任职要求" prop="requirements">
+          <el-input
+            v-model="formData.requirements"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入任职要求"
+          />
+        </el-form-item>
+        <el-form-item label="福利待遇" prop="welfare">
+          <el-input
+            v-model="formData.welfare"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入福利待遇，多条用逗号分隔"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 预览弹窗 -->
+    <el-dialog v-model="previewVisible" title="职位预览" width="600px">
+      <div class="job-preview" v-if="previewData">
+        <h2 class="title">{{ previewData.jobName }}</h2>
+        <div class="company">{{ previewData.company }}</div>
+        <div class="info-row">
+          <span class="salary">{{ previewData.salaryMin }}-{{ previewData.salaryMax }}</span>
+          <span class="location">{{ previewData.workAddress }}</span>
+        </div>
+        <el-divider />
+        <div class="detail-item">
+          <label>学历要求：</label>
+          <span>{{ previewData.education }}</span>
+        </div>
+        <div class="detail-item">
+          <label>工作经验：</label>
+          <span>{{ previewData.experience }}</span>
+        </div>
+        <div class="detail-item">
+          <label>招聘人数：</label>
+          <span>{{ previewData.recruitCount }}人</span>
+        </div>
+        <el-divider />
+        <div class="section">
+          <h3>岗位职责</h3>
+          <p>{{ previewData.responsibilities }}</p>
+        </div>
+        <div class="section" v-if="previewData.requirements">
+          <h3>任职要求</h3>
+          <p>{{ previewData.requirements }}</p>
+        </div>
+        <div class="section" v-if="previewData.welfare">
+          <h3>福利待遇</h3>
+          <p>{{ previewData.welfare }}</p>
+        </div>
+        <el-divider />
+        <div class="contact">
+          <h3>联系方式</h3>
+          <p><label>联系人：</label>{{ previewData.contactName }}</p>
+          <p><label>电话：</label>{{ previewData.contactPhone }}</p>
+          <p v-if="previewData.contactEmail"><label>邮箱：</label>{{ previewData.contactEmail }}</p>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus } from '@/api/job'
+
+// 查询参数
+const queryParams = reactive({
+  pageNum: 1,
+  pageSize: 10,
+  jobName: '',
+  status: null
+})
+
+// 列表数据
+const jobList = ref([])
+const total = ref(0)
+const loading = ref(false)
+
+// 弹窗
+const dialogVisible = ref(false)
+const submitLoading = ref(false)
+const formRef = ref(null)
+
+const isEdit = ref(false)
+const dialogTitle = computed(() => isEdit.value ? '编辑职位' : '新增职位')
+
+// 表单数据
+const formData = reactive({
+  id: null,
+  jobName: '',
+  company: '',
+  salaryMin: 0,
+  salaryMax: 0,
+  workAddress: '',
+  education: '不限',
+  experience: '不限',
+  recruitCount: 1,
+  responsibilities: '',
+  requirements: '',
+  welfare: '',
+  contactName: '',
+  contactPhone: '',
+  contactEmail: ''
+})
+
+// 表单验证规则
+const formRules = {
+  jobName: [{ required: true, message: '请输入职位名称', trigger: 'blur' }],
+  company: [{ required: true, message: '请输入公司名称', trigger: 'blur' }],
+  workAddress: [{ required: true, message: '请输入工作地点', trigger: 'blur' }],
+  contactName: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
+  contactPhone: [
+    { required: true, message: '请输入联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+  ]
+}
+
+// 预览
+const previewVisible = ref(false)
+const previewData = ref(null)
+
+// 获取职位列表
+const fetchJobList = async () => {
+  loading.value = true
+  try {
+    const res = await getJobList(queryParams)
+    jobList.value = res.data.records || []
+    total.value = res.data.total || 0
+  } catch (error) {
+    console.error('获取职位列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索
+const handleSearch = () => {
+  queryParams.page = 1
+  fetchJobList()
+}
+
+// 重置
+const handleReset = () => {
+  queryParams.jobName = ''
+  queryParams.status = null
+  handleSearch()
+}
+
+// 新增
+const handleAdd = () => {
+  isEdit.value = false
+  resetForm()
+  dialogVisible.value = true
+}
+
+// 编辑
+const handleEdit = async (row) => {
+  isEdit.value = true
+  try {
+    const res = await getJobDetail(row.id)
+    Object.assign(formData, res.data)
+    dialogVisible.value = true
+  } catch (error) {
+    console.error('获取职位详情失败:', error)
+  }
+}
+
+// 重置表单
+const resetForm = () => {
+  Object.assign(formData, {
+    id: null,
+    jobName: '',
+    company: '',
+    salaryMin: 0,
+    salaryMax: 0,
+    workAddress: '',
+    education: '不限',
+    experience: '不限',
+    recruitCount: 1,
+    responsibilities: '',
+    requirements: '',
+    welfare: '',
+    contactName: '',
+    contactPhone: '',
+    contactEmail: ''
+  })
+  formRef.value?.resetFields()
+}
+
+// 提交
+const handleSubmit = async () => {
+  await formRef.value.validate()
+  submitLoading.value = true
+  try {
+    if (isEdit.value) {
+      await updateJob(formData.id, formData)
+      ElMessage.success('修改成功')
+    } else {
+      await createJob(formData)
+      ElMessage.success('新增成功')
+    }
+    dialogVisible.value = false
+    fetchJobList()
+  } catch (error) {
+    console.error('保存失败:', error)
+  } finally {
+    submitLoading.value = false
+  }
+}
+
+// 状态切换
+const handleStatusChange = async (row) => {
+  try {
+    await updateJobStatus(row.id, row.status)
+    ElMessage.success('状态更新成功')
+  } catch (error) {
+    row.status = row.status === 1 ? 0 : 1
+    console.error('状态更新失败:', error)
+  }
+}
+
+// 预览
+const handlePreview = async (row) => {
+  try {
+    const res = await getJobDetail(row.id)
+    previewData.value = res.data
+    previewVisible.value = true
+  } catch (error) {
+    console.error('获取职位详情失败:', error)
+  }
+}
+
+// 删除
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该职位吗？', '提示', {
+      type: 'warning'
+    })
+    await deleteJob(row.id)
+    ElMessage.success('删除成功')
+    fetchJobList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+    }
+  }
+}
+
+// 初始化
+fetchJobList()
+</script>
+
+<style lang="scss" scoped>
+.job-container {
+  .search-card {
+    margin-bottom: 20px;
+
+    :deep(.el-card__body) {
+      padding-bottom: 0;
+    }
+  }
+
+  .table-card {
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .el-pagination {
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+  }
+}
+
+.job-preview {
+  .title {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .company {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+
+  .info-row {
+    .salary {
+      font-size: 18px;
+      color: #f56c6c;
+      margin-right: 20px;
+    }
+
+    .location {
+      color: #666;
+    }
+  }
+
+  .detail-item {
+    margin-bottom: 10px;
+
+    label {
+      color: #666;
+    }
+  }
+
+  .section {
+    margin-bottom: 20px;
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      padding-left: 10px;
+      border-left: 3px solid #409eff;
+    }
+
+    p {
+      color: #666;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+  }
+
+  .contact {
+    h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 5px;
+
+      label {
+        color: #333;
+      }
+    }
+  }
+}
+</style>

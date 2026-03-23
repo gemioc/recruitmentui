@@ -1,0 +1,101 @@
+// 全局样式
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  color: #303133;
+  background-color: #f0f2f5;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+
+  &:hover {
+    background: #a8a8a8;
+  }
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+// 表格样式覆盖
+.el-table {
+  .el-table__header-wrapper {
+    th {
+      background-color: #f5f7fa !important;
+    }
+  }
+}
+
+// 卡片样式
+.el-card {
+  border-radius: 8px;
+}
+
+// 弹窗动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// 分页样式
+.el-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+// 表格操作栏按钮样式 - 防止换行
+.el-table {
+  .el-table__fixed-right {
+    .cell {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+    }
+  }
+}
+
+// 搜索区域下拉框最小宽度
+.search-card {
+  .el-select {
+    min-width: 120px;
+  }
+}
+
+// 表格内按钮不换行
+.el-table__body-wrapper {
+  .el-button + .el-button {
+    margin-left: 8px;
+  }
+}

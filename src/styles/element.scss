@@ -1,0 +1,68 @@
+// Element Plus 样式覆盖
+
+// 卡片样式
+.el-card {
+  border: none;
+  border-radius: 4px;
+
+  .el-card__header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #EBEEF5;
+  }
+
+  .el-card__body {
+    padding: 20px;
+  }
+}
+
+// 表格样式
+.el-table {
+  .el-table__header th {
+    background-color: #F5F7FA;
+    font-weight: 600;
+    color: #303133;
+  }
+
+  .el-table__row {
+    &:hover > td {
+      background-color: #F5F7FA;
+    }
+  }
+}
+
+// 表单样式
+.el-form {
+  .el-form-item__label {
+    font-weight: 500;
+  }
+}
+
+// 对话框样式
+.el-dialog {
+  border-radius: 8px;
+
+  .el-dialog__header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #EBEEF5;
+  }
+
+  .el-dialog__body {
+    padding: 20px;
+  }
+
+  .el-dialog__footer {
+    padding: 15px 20px;
+    border-top: 1px solid #EBEEF5;
+  }
+}
+
+// 分页样式
+.el-pagination {
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+// 按钮样式
+.el-button {
+  font-weight: 500;
+}
