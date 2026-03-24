@@ -238,7 +238,7 @@
                 </div>
                 <div class="device-info">
                   <span class="device-code">{{ device.deviceCode }}</span>
-                  <span class="push-count">{{ device.pushCount }}次推送</span>
+                  <span class="push-count">{{ device.pushCount || '-' }}</span>
                 </div>
                 <div class="device-duration" v-if="device.totalOnlineDurationText">
                   在线时长: {{ device.totalOnlineDurationText }}
