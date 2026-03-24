@@ -68,7 +68,11 @@
         <el-table-column prop="operationDesc" label="操作描述" min-width="200" />
         <el-table-column prop="ipAddress" label="IP地址" width="130" />
         <el-table-column prop="executionTime" label="耗时(ms)" width="100" />
-        <el-table-column prop="operationTime" label="操作时间" width="160" />
+        <el-table-column label="操作时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.operationTime) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="80" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
@@ -108,7 +112,7 @@
         </el-descriptions-item>
         <el-descriptions-item label="IP地址">{{ detailData.ipAddress }}</el-descriptions-item>
         <el-descriptions-item label="执行耗时">{{ detailData.executionTime }}ms</el-descriptions-item>
-        <el-descriptions-item label="操作时间">{{ detailData.operationTime }}</el-descriptions-item>
+        <el-descriptions-item label="操作时间">{{ formatDateTime(detailData.operationTime) }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -118,6 +122,12 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOperationLogs, clearOperationLogs } from '@/api/log'
+import { formatDate } from '@/utils/format'
+
+// 格式化日期时间
+const formatDateTime = (date) => {
+  return formatDate(date, 'YYYY-MM-DD HH:mm:ss')
+}
 
 // 查询参数
 const queryParams = reactive({
