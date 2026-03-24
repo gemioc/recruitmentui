@@ -71,8 +71,16 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="lastLoginTime" label="最后登录" width="160" />
-        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column label="最后登录" width="160">
+          <template #default="{ row }">
+            {{ formatDate(row.lastLoginTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="160">
+          <template #default="{ row }">
+            {{ formatDate(row.createTime) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
@@ -183,6 +191,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser, resetUserPassword } from '@/api/user'
+import { formatDate } from '@/utils/format'
 
 // 查询参数
 const queryParams = reactive({

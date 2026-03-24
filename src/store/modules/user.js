@@ -26,7 +26,14 @@ export const useUserStore = defineStore('user', {
      */
     async login(loginForm) {
       try {
-        const res = await login(loginForm)
+        // Base64编码密码
+        const encodedPassword = btoa(loginForm.password)
+
+        // 发送登录请求
+        const res = await login({
+          username: loginForm.username,
+          password: encodedPassword
+        })
         const { token, userInfo } = res.data
 
         // 保存token

@@ -70,3 +70,16 @@ export function getPushDetail(id) {
     method: 'get'
   })
 }
+
+/**
+ * 导出推送记录
+ * @param {object} params - 查询参数
+ */
+export function exportPushRecords(params) {
+  return request({
+    url: '/push/records/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}

@@ -270,9 +270,10 @@ const passwordRules = {
 const handleChangePassword = async () => {
   await passwordFormRef.value.validate()
   try {
+    // Base64编码密码
     await updatePassword({
-      oldPassword: passwordForm.oldPassword,
-      newPassword: passwordForm.newPassword
+      oldPassword: btoa(passwordForm.oldPassword),
+      newPassword: btoa(passwordForm.newPassword)
     })
     ElMessage.success('密码修改成功')
     passwordDialogVisible.value = false

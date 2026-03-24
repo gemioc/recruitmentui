@@ -65,10 +65,10 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="deviceCode" label="设备编号" width="120" />
-        <el-table-column prop="deviceName" label="设备名称" min-width="150" />
-        <el-table-column prop="groupName" label="所属分组" width="120" />
-        <el-table-column prop="location" label="安装位置" min-width="150" />
+        <el-table-column prop="deviceCode" label="设备编号" width="150" />
+        <el-table-column prop="deviceName" label="设备名称" min-width="180" />
+        <el-table-column prop="groupName" label="所属分组" width="140" />
+        <el-table-column prop="location" label="安装位置" min-width="180" />
         <el-table-column prop="onlineStatus" label="在线状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.onlineStatus === 1 ? 'success' : 'danger'" size="small">
@@ -76,8 +76,16 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="lastHeartbeat" label="最后在线时间" width="160" />
-        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column label="最后在线时间" width="170">
+          <template #default="{ row }">
+            {{ formatDate(row.lastHeartbeat) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">
+            {{ formatDate(row.createTime) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
@@ -184,8 +192,8 @@
             {{ detailData.onlineStatus === 1 ? '在线' : '离线' }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="最后在线时间">{{ detailData.lastHeartbeat }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detailData.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="最后在线时间">{{ formatDate(detailData.lastHeartbeat) }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDate(detailData.createTime) }}</el-descriptions-item>
         <el-descriptions-item label="当前播放内容" :span="2">
           {{ detailData.currentContent || '暂无' }}
         </el-descriptions-item>
@@ -209,7 +217,7 @@
             <el-option
               v-for="item in contentList"
               :key="item.id"
-              :label="item.title"
+              :label="item.posterName || item.videoName"
               :value="item.id"
             />
           </el-select>
@@ -238,6 +246,7 @@ import {
 import { pushPoster, pushVideo, controlDevice } from '@/api/push'
 import { getPosterList } from '@/api/poster'
 import { getVideoList } from '@/api/video'
+import { formatDate } from '@/utils/format'
 
 // 查询参数
 const queryParams = reactive({
@@ -321,7 +330,7 @@ const fetchDeviceList = async () => {
 
 // 搜索
 const handleSearch = () => {
-  queryParams.page = 1
+  queryParams.pageNum = 1
   fetchDeviceList()
 }
 
@@ -447,9 +456,9 @@ const handleBatchPush = async () => {
   try {
     let res
     if (pushForm.contentType === 'poster') {
-      res = await getPosterList({ page: 1, size: 100, status: 1 })
+      res = await getPosterList({ pageNum: 1, pageSize: 100 })
     } else {
-      res = await getVideoList({ page: 1, size: 100, status: 1 })
+      res = await getVideoList({ pageNum: 1, pageSize: 100 })
     }
     contentList.value = res.data.records || []
     pushForm.contentId = null
@@ -467,10 +476,11 @@ const confirmBatchPush = async () => {
   }
   pushLoading.value = true
   try {
-    const deviceIds = selectedDevices.value.map(item => item.id)
+    const targetIds = selectedDevices.value.map(item => item.id)
     const data = {
-      deviceIds,
-      contentId: pushForm.contentId
+      targetIds,
+      contentId: pushForm.contentId,
+      contentType: pushForm.contentType
     }
     if (pushForm.contentType === 'poster') {
       await pushPoster(data)

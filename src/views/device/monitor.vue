@@ -4,17 +4,17 @@
     <el-card shadow="never" class="filter-card">
       <el-form inline>
         <el-form-item label="设备分组">
-          <el-select v-model="filterGroupId" placeholder="全部" clearable @change="handleFilter">
+          <el-select v-model="filterGroupId" placeholder="全部" clearable style="width: 160px" @change="handleFilter">
             <el-option
               v-for="group in groupList"
               :key="group.id"
-              :label="group.name"
+              :label="group.groupName"
               :value="group.id"
             />
           </el-select>
         </el-form-item>
         <el-form-item label="在线状态">
-          <el-select v-model="filterStatus" placeholder="全部" clearable @change="handleFilter">
+          <el-select v-model="filterStatus" placeholder="全部" clearable style="width: 120px" @change="handleFilter">
             <el-option label="在线" :value="1" />
             <el-option label="离线" :value="0" />
           </el-select>
@@ -62,15 +62,15 @@
         v-for="device in deviceList"
         :key="device.id"
         class="monitor-card"
-        :class="{ offline: device.status === 0 }"
+        :class="{ offline: device.onlineStatus === 0 }"
         @click="handleDeviceClick(device)"
       >
         <div class="card-header">
           <div class="device-info">
-            <el-tag :type="device.status === 1 ? 'success' : 'danger'" size="small">
-              {{ device.status === 1 ? '在线' : '离线' }}
+            <el-tag :type="device.onlineStatus === 1 ? 'success' : 'danger'" size="small">
+              {{ device.onlineStatus === 1 ? '在线' : '离线' }}
             </el-tag>
-            <span class="device-name">{{ device.name }}</span>
+            <span class="device-name">{{ device.deviceName }}</span>
           </div>
           <el-dropdown @command="(cmd) => handleCommand(cmd, device)" trigger="click">
             <el-button type="primary" link>
@@ -110,7 +110,7 @@
           </div>
           <div class="footer-item">
             <el-icon><Clock /></el-icon>
-            <span>{{ device.lastOnlineTime || '-' }}</span>
+            <span>{{ device.lastHeartbeat || '-' }}</span>
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@
               {{ currentDevice.deviceCode }}
             </el-descriptions-item>
             <el-descriptions-item label="设备名称">
-              {{ currentDevice.name }}
+              {{ currentDevice.deviceName }}
             </el-descriptions-item>
             <el-descriptions-item label="所属分组">
               {{ currentDevice.groupName || '未分组' }}
@@ -138,8 +138,8 @@
               {{ currentDevice.resolution }}
             </el-descriptions-item>
             <el-descriptions-item label="在线状态">
-              <el-tag :type="currentDevice.status === 1 ? 'success' : 'danger'" size="small">
-                {{ currentDevice.status === 1 ? '在线' : '离线' }}
+              <el-tag :type="currentDevice.onlineStatus === 1 ? 'success' : 'danger'" size="small">
+                {{ currentDevice.onlineStatus === 1 ? '在线' : '离线' }}
               </el-tag>
             </el-descriptions-item>
           </el-descriptions>
@@ -208,7 +208,7 @@
             <el-option
               v-for="item in contentList"
               :key="item.id"
-              :label="item.title"
+              :label="item.posterName || item.videoName"
               :value="item.id"
             />
           </el-select>
@@ -243,9 +243,9 @@ const groupList = ref([])
 // 统计信息
 const statistics = computed(() => {
   const total = deviceList.value.length
-  const online = deviceList.value.filter(d => d.status === 1).length
+  const online = deviceList.value.filter(d => d.onlineStatus === 1).length
   const offline = total - online
-  const playing = deviceList.value.filter(d => d.isPlaying).length
+  const playing = deviceList.value.filter(d => d.playStatus === 1).length
   return { total, online, offline, playing }
 })
 
@@ -285,11 +285,11 @@ const fetchDeviceList = async () => {
   loading.value = true
   try {
     const params = {
-      page: 1,
-      size: 100
+      pageNum: 1,
+      pageSize: 100
     }
     if (filterGroupId.value) params.groupId = filterGroupId.value
-    if (filterStatus.value !== null) params.status = filterStatus.value
+    if (filterStatus.value !== null) params.onlineStatus = filterStatus.value
 
     const res = await getDeviceList(params)
     deviceList.value = res.data.records || []
@@ -393,12 +393,13 @@ const confirmPush = async () => {
   pushLoading.value = true
   try {
     const data = {
-      deviceIds: [currentDevice.value.id],
-      contentId: pushForm.contentId
+      targetIds: [currentDevice.value.id]
     }
     if (pushForm.contentType === 'poster') {
+      data.posterId = pushForm.contentId
       await pushPoster(data)
     } else {
+      data.videoId = pushForm.contentId
       await pushVideo(data)
     }
     ElMessage.success('推送成功')

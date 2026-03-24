@@ -5,17 +5,11 @@
       <el-form :model="queryParams" inline>
         <el-form-item label="海报名称">
           <el-input
-            v-model="queryParams.keyword"
+            v-model="queryParams.posterName"
             placeholder="请输入海报名称"
             clearable
             @keyup.enter="handleSearch"
           />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="queryParams.status" placeholder="全部" clearable>
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
@@ -44,30 +38,30 @@
 
       <el-table :data="posterList" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="title" label="海报名称" min-width="150" />
-        <el-table-column prop="thumbnail" label="预览图" width="120">
+        <el-table-column prop="posterName" label="海报名称" min-width="150" />
+        <el-table-column label="预览图" width="120">
           <template #default="{ row }">
             <el-image
-              :src="row.thumbnail"
-              :preview-src-list="[row.imageUrl]"
+              :src="getPosterUrl(row.filePath)"
+              :preview-src-list="[getPosterUrl(row.filePath)]"
               fit="cover"
               class="poster-thumb"
-            />
+            >
+              <template #error>
+                <div class="image-placeholder">
+                  <el-icon><Picture /></el-icon>
+                </div>
+              </template>
+            </el-image>
           </template>
         </el-table-column>
-        <el-table-column prop="jobTitle" label="关联职位" min-width="120" />
+        <el-table-column prop="jobName" label="关联职位" min-width="120" />
         <el-table-column prop="templateName" label="使用模板" width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column label="创建时间" width="170">
           <template #default="{ row }">
-            <el-switch
-              v-model="row.status"
-              :active-value="1"
-              :inactive-value="0"
-              @change="handleStatusChange(row)"
-            />
+            {{ formatDate(row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="160" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handlePreview(row)">预览</el-button>
@@ -79,8 +73,8 @@
       </el-table>
 
       <el-pagination
-        v-model:current-page="queryParams.page"
-        v-model:page-size="queryParams.size"
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
         :total="total"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
@@ -92,7 +86,7 @@
     <!-- 预览弹窗 -->
     <el-dialog v-model="previewVisible" title="海报预览" width="800px">
       <div class="preview-container" v-if="previewData">
-        <img :src="previewData.imageUrl" alt="海报预览" class="preview-image" />
+        <img :src="getPosterUrl(previewData.filePath)" alt="海报预览" class="preview-image" />
       </div>
     </el-dialog>
 
@@ -109,7 +103,7 @@
             <el-option
               v-for="device in deviceList"
               :key="device.id"
-              :label="device.name"
+              :label="device.deviceName"
               :value="device.id"
             />
           </el-select>
@@ -131,18 +125,19 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPosterList, getPosterDetail, deletePoster, updatePoster } from '@/api/poster'
+import { Picture } from '@element-plus/icons-vue'
+import { getPosterList, getPosterDetail, deletePoster } from '@/api/poster'
 import { getDeviceList } from '@/api/device'
-import { pushPoster } from '@/api/push'
+import { pushMultiple } from '@/api/push'
+import { formatDate } from '@/utils/format'
 
 const router = useRouter()
 
 // 查询参数
 const queryParams = reactive({
-  page: 1,
-  size: 10,
-  keyword: '',
-  status: null
+  pageNum: 1,
+  pageSize: 10,
+  posterName: ''
 })
 
 // 列表数据
@@ -164,6 +159,13 @@ const pushForm = reactive({
   duration: 30
 })
 
+// 获取海报URL
+const getPosterUrl = (filePath) => {
+  if (!filePath) return ''
+  const path = filePath.startsWith('/') ? filePath.slice(1) : filePath
+  return `/api/files/${path}`
+}
+
 // 获取海报列表
 const fetchPosterList = async () => {
   loading.value = true
@@ -181,7 +183,7 @@ const fetchPosterList = async () => {
 // 获取设备列表
 const fetchDeviceList = async () => {
   try {
-    const res = await getDeviceList({ page: 1, size: 100, status: 1 })
+    const res = await getDeviceList({ pageNum: 1, pageSize: 100 })
     deviceList.value = res.data.records || []
   } catch (error) {
     console.error('获取设备列表失败:', error)
@@ -190,26 +192,14 @@ const fetchDeviceList = async () => {
 
 // 搜索
 const handleSearch = () => {
-  queryParams.page = 1
+  queryParams.pageNum = 1
   fetchPosterList()
 }
 
 // 重置
 const handleReset = () => {
-  queryParams.keyword = ''
-  queryParams.status = null
+  queryParams.posterName = ''
   handleSearch()
-}
-
-// 状态切换
-const handleStatusChange = async (row) => {
-  try {
-    await updatePoster({ id: row.id, status: row.status })
-    ElMessage.success('状态更新成功')
-  } catch (error) {
-    row.status = row.status === 1 ? 0 : 1
-    console.error('状态更新失败:', error)
-  }
 }
 
 // 预览
@@ -240,10 +230,11 @@ const confirmPush = async () => {
   }
   pushLoading.value = true
   try {
-    await pushPoster({
-      contentId: pushForm.posterId,
-      deviceIds: pushForm.deviceIds,
-      duration: pushForm.duration
+    await pushMultiple({
+      contentType: 'poster',
+      contentIds: [pushForm.posterId],
+      targetIds: pushForm.deviceIds,
+      playRule: { duration: pushForm.duration }
     })
     ElMessage.success('推送成功')
     pushDialogVisible.value = false
@@ -256,10 +247,18 @@ const confirmPush = async () => {
 
 // 下载
 const handleDownload = (row) => {
+  if (!row.filePath) {
+    ElMessage.warning('海报文件不存在')
+    return
+  }
+  const url = getPosterUrl(row.filePath)
   const link = document.createElement('a')
-  link.href = row.imageUrl
-  link.download = `${row.title}.png`
+  link.href = url
+  link.download = `${row.posterName || 'poster'}.png`
+  link.target = '_blank'
+  document.body.appendChild(link)
   link.click()
+  document.body.removeChild(link)
   ElMessage.success('开始下载')
 }
 
@@ -306,6 +305,16 @@ onMounted(() => {
       width: 80px;
       height: 60px;
       cursor: pointer;
+
+      .image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f7fa;
+        color: #909399;
+      }
     }
 
     .el-pagination {

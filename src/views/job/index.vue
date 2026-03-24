@@ -62,7 +62,11 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column label="创建时间" width="160">
+          <template #default="{ row }">
+            {{ formatDate(row.createTime) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
@@ -260,6 +264,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus } from '@/api/job'
+import { formatDate } from '@/utils/format'
 
 // 查询参数
 const queryParams = reactive({
@@ -333,7 +338,7 @@ const fetchJobList = async () => {
 
 // 搜索
 const handleSearch = () => {
-  queryParams.page = 1
+  queryParams.pageNum = 1
   fetchJobList()
 }
 

@@ -29,7 +29,7 @@
                   <el-icon><Folder /></el-icon>
                   {{ node.label }}
                 </span>
-                <span class="node-count">({{ data.deviceCount || 0 }})</span>
+                <span class="node-count">({{ data.onlineCount || 0 }}/{{ data.deviceCount || 0 }})</span>
                 <span class="node-actions">
                   <el-button type="primary" link size="small" @click.stop="handleEditGroup(data)">
                     编辑
@@ -49,7 +49,7 @@
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>{{ currentGroup ? `${currentGroup.name} - 设备列表` : '全部设备' }}</span>
+              <span>{{ currentGroup ? `${currentGroup.groupName} - 设备列表` : '全部设备' }}</span>
               <el-button
                 type="primary"
                 size="small"
@@ -62,13 +62,13 @@
           </template>
 
           <el-table :data="deviceList" v-loading="loading" stripe>
-            <el-table-column prop="deviceCode" label="设备编号" width="120" />
-            <el-table-column prop="name" label="设备名称" min-width="150" />
+            <el-table-column prop="deviceCode" label="设备编号" width="150" />
+            <el-table-column prop="deviceName" label="设备名称" min-width="150" />
             <el-table-column prop="location" label="安装位置" min-width="150" />
-            <el-table-column prop="status" label="状态" width="100">
+            <el-table-column prop="onlineStatus" label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                  {{ row.status === 1 ? '在线' : '离线' }}
+                <el-tag :type="row.onlineStatus === 1 ? 'success' : 'danger'" size="small">
+                  {{ row.onlineStatus === 1 ? '在线' : '离线' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -96,8 +96,8 @@
         :rules="groupFormRules"
         label-width="80px"
       >
-        <el-form-item label="分组名称" prop="name">
-          <el-input v-model="groupFormData.name" placeholder="请输入分组名称" />
+        <el-form-item label="分组名称" prop="groupName">
+          <el-input v-model="groupFormData.groupName" placeholder="请输入分组名称" />
         </el-form-item>
         <el-form-item label="分组描述" prop="description">
           <el-input
@@ -124,7 +124,7 @@
         :titles="['待选设备', '已选设备']"
         :props="{
           key: 'id',
-          label: 'name'
+          label: 'deviceCode'
         }"
         filterable
         filter-placeholder="搜索设备"
@@ -145,7 +145,7 @@
             <el-option
               v-for="group in groupList"
               :key="group.id"
-              :label="group.name"
+              :label="group.groupName"
               :value="group.id"
             />
           </el-select>
@@ -179,7 +179,7 @@ const groupList = ref([])
 const groupTree = computed(() => {
   return groupList.value.map(item => ({
     ...item,
-    label: item.name
+    label: item.groupName
   }))
 })
 const treeProps = {
@@ -202,11 +202,11 @@ const isEditGroup = ref(false)
 const groupDialogTitle = computed(() => isEditGroup.value ? '编辑分组' : '新增分组')
 const groupFormData = reactive({
   id: null,
-  name: '',
+  groupName: '',
   description: ''
 })
 const groupFormRules = {
-  name: [{ required: true, message: '请输入分组名称', trigger: 'blur' }]
+  groupName: [{ required: true, message: '请输入分组名称', trigger: 'blur' }]
 }
 
 // 添加设备
@@ -259,7 +259,7 @@ const handleAddGroup = () => {
   isEditGroup.value = false
   Object.assign(groupFormData, {
     id: null,
-    name: '',
+    groupName: '',
     description: ''
   })
   groupDialogVisible.value = true
@@ -270,7 +270,7 @@ const handleEditGroup = (data) => {
   isEditGroup.value = true
   Object.assign(groupFormData, {
     id: data.id,
-    name: data.name,
+    groupName: data.groupName,
     description: data.description
   })
   groupDialogVisible.value = true
@@ -301,7 +301,7 @@ const handleGroupSubmit = async () => {
 const handleDeleteGroup = async (data) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除分组【${data.name}】吗？分组内的设备将移至默认分组。`,
+      `确定要删除分组【${data.groupName}】吗？分组内的设备将移至默认分组。`,
       '提示',
       { type: 'warning' }
     )
@@ -347,7 +347,7 @@ const confirmAddDevices = async () => {
     // 批量更新设备分组
     await Promise.all(
       selectedDeviceIds.value.map(deviceId =>
-        updateDevice({ id: deviceId, groupId: currentGroup.value.id })
+        updateDevice(deviceId, { groupId: currentGroup.value.id })
       )
     )
     ElMessage.success('添加成功')
@@ -376,10 +376,7 @@ const confirmMoveDevice = async () => {
   }
   moveDeviceLoading.value = true
   try {
-    await updateDevice({
-      id: moveDeviceData.value.id,
-      groupId: targetGroupId.value
-    })
+    await updateDevice(moveDeviceData.value.id, { groupId: targetGroupId.value })
     ElMessage.success('移动成功')
     moveDeviceDialogVisible.value = false
     fetchGroupDevices(currentGroup.value.id)
@@ -395,11 +392,11 @@ const confirmMoveDevice = async () => {
 const handleRemoveDevice = async (row) => {
   try {
     await ElMessageBox.confirm(
-      `确定要将设备【${row.name}】移出当前分组吗？`,
+      `确定要将设备【${row.deviceName}】移出当前分组吗？`,
       '提示',
       { type: 'warning' }
     )
-    await updateDevice({ id: row.id, groupId: null })
+    await updateDevice(row.id, { groupId: null })
     ElMessage.success('移除成功')
     fetchGroupDevices(currentGroup.value.id)
     fetchGroupList()

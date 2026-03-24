@@ -22,32 +22,23 @@
             @selection-change="handleContentSelection"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column prop="title" label="名称" min-width="150" />
-            <el-table-column label="预览" width="100">
+            <el-table-column label="名称" min-width="120">
               <template #default="{ row }">
-                <el-image
-                  v-if="contentType === 'poster'"
-                  :src="row.thumbnail || row.imageUrl"
-                  fit="cover"
-                  class="content-thumb"
-                />
-                <div v-else class="content-thumb video">
-                  <el-icon><VideoCamera /></el-icon>
-                </div>
+                {{ row.posterName || row.videoName }}
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column label="预览" width="80">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-                  {{ row.status === 1 ? '启用' : '禁用' }}
-                </el-tag>
+                <el-button type="primary" link size="small" @click="handlePreview(row)">
+                  查看
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
 
           <el-pagination
-            v-model:current-page="contentQuery.page"
-            v-model:page-size="contentQuery.size"
+            v-model:current-page="contentQuery.pageNum"
+            v-model:page-size="contentQuery.pageSize"
             :total="contentTotal"
             :page-sizes="[10, 20, 50]"
             layout="total, prev, pager, next"
@@ -77,20 +68,20 @@
             @selection-change="handleDeviceSelection"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column prop="name" label="设备名称" min-width="120" />
+            <el-table-column prop="deviceName" label="设备名称" min-width="120" />
             <el-table-column prop="groupName" label="分组" width="100" />
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column label="状态" width="80">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                  {{ row.status === 1 ? '在线' : '离线' }}
+                <el-tag :type="row.onlineStatus === 1 ? 'success' : 'danger'" size="small">
+                  {{ row.onlineStatus === 1 ? '在线' : '离线' }}
                 </el-tag>
               </template>
             </el-table-column>
           </el-table>
 
           <el-pagination
-            v-model:current-page="deviceQuery.page"
-            v-model:page-size="deviceQuery.size"
+            v-model:current-page="deviceQuery.pageNum"
+            v-model:page-size="deviceQuery.pageSize"
             :total="deviceTotal"
             :page-sizes="[10, 20, 50]"
             layout="total, prev, pager, next"
@@ -142,6 +133,24 @@
         <span>已选择 {{ selectedContents.length }} 个内容，{{ selectedDevices.length }} 台设备</span>
       </div>
     </el-card>
+
+    <!-- 预览弹窗 -->
+    <el-dialog v-model="previewVisible" :title="previewTitle" width="800px">
+      <div class="preview-content">
+        <el-image
+          v-if="previewType === 'poster'"
+          :src="previewUrl"
+          fit="contain"
+          style="max-width: 100%; max-height: 500px;"
+        />
+        <video
+          v-else
+          :src="previewUrl"
+          controls
+          style="max-width: 100%; max-height: 500px;"
+        />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -161,9 +170,8 @@ const contentList = ref([])
 const contentTotal = ref(0)
 const contentLoading = ref(false)
 const contentQuery = reactive({
-  page: 1,
-  size: 10,
-  status: 1
+  pageNum: 1,
+  pageSize: 10
 })
 
 // 设备列表
@@ -171,8 +179,8 @@ const deviceList = ref([])
 const deviceTotal = ref(0)
 const deviceLoading = ref(false)
 const deviceQuery = reactive({
-  page: 1,
-  size: 10
+  pageNum: 1,
+  pageSize: 10
 })
 
 // 选中项
@@ -188,6 +196,32 @@ const pushConfig = reactive({
 
 // 推送状态
 const pushing = ref(false)
+
+// 预览
+const previewVisible = ref(false)
+const previewUrl = ref('')
+const previewTitle = ref('')
+const previewType = ref('poster')
+
+// 获取文件URL
+const getFileUrl = (filePath) => {
+  if (!filePath) return ''
+  const path = filePath.startsWith('/') ? filePath.slice(1) : filePath
+  return `/api/files/${path}`
+}
+
+// 预览
+const handlePreview = (row) => {
+  previewTitle.value = row.posterName || row.videoName
+  if (contentType.value === 'poster') {
+    previewType.value = 'poster'
+    previewUrl.value = getFileUrl(row.filePath)
+  } else {
+    previewType.value = 'video'
+    previewUrl.value = getFileUrl(row.filePath)
+  }
+  previewVisible.value = true
+}
 
 // 获取内容列表
 const fetchContentList = async () => {
@@ -250,8 +284,8 @@ const handlePush = async () => {
     await pushMultiple({
       contentType: contentType.value,
       contentIds: selectedContents.value.map(item => item.id),
-      deviceIds: selectedDevices.value.map(item => item.id),
-      config: pushConfig
+      targetIds: selectedDevices.value.map(item => item.id),
+      playRule: pushConfig
     })
     ElMessage.success('推送成功')
   } catch (error) {
@@ -314,6 +348,13 @@ onMounted(() => {
       color: #909399;
       font-size: 13px;
     }
+  }
+
+  .preview-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
   }
 }
 </style>

@@ -124,7 +124,11 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createTime" label="时间" width="160" />
+            <el-table-column label="时间" width="160">
+              <template #default="{ row }">
+                {{ formatDate(row.createTime) }}
+              </template>
+            </el-table-column>
           </el-table>
         </el-card>
       </el-col>
@@ -137,6 +141,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getPushStatistics, getDeviceStatistics, getContentStatistics } from '@/api/statistics'
+import { formatDate } from '@/utils/format'
 import { getPushRecords } from '@/api/push'
 
 const router = useRouter()
