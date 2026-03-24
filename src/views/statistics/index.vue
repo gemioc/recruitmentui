@@ -151,13 +151,10 @@
         <!-- 推送趋势 -->
         <el-card shadow="hover" class="chart-card trend-card">
           <template #header>
-            <div class="card-header">
-              <span class="card-title">
-                <el-icon><TrendCharts /></el-icon>
-                推送趋势
-              </span>
-              <span class="card-tip">当前筛选条件下数据</span>
-            </div>
+            <span class="card-title">
+              <el-icon><TrendCharts /></el-icon>
+              推送趋势
+            </span>
           </template>
           <div ref="trendChartRef" class="chart-container"></div>
         </el-card>
@@ -201,13 +198,10 @@
       <div class="device-panel">
         <el-card shadow="hover" class="device-card">
           <template #header>
-            <div class="card-header">
-              <span class="card-title">
-                <el-icon><Monitor /></el-icon>
-                设备状态
-              </span>
-              <span class="card-tip">实时状态</span>
-            </div>
+            <span class="card-title">
+              <el-icon><Monitor /></el-icon>
+              设备状态
+            </span>
           </template>
 
           <div class="device-summary">
