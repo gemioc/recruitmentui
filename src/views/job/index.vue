@@ -11,10 +11,18 @@
             @keyup.enter="handleSearch"
           />
         </el-form-item>
+        <el-form-item label="工作地点">
+          <el-input
+            v-model="queryParams.workAddress"
+            placeholder="请输入工作地点"
+            clearable
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
         <el-form-item label="职位状态">
           <el-select v-model="queryParams.status" placeholder="全部" clearable style="width: 120px">
             <el-option label="招聘中" :value="1" />
-            <el-option label="已暂停" :value="0" />
+            <el-option label="已截止" :value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -271,6 +279,7 @@ const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   jobName: '',
+  workAddress: '',
   status: null
 })
 
@@ -345,6 +354,7 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   queryParams.jobName = ''
+  queryParams.workAddress = ''
   queryParams.status = null
   handleSearch()
 }
