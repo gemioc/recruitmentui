@@ -83,3 +83,13 @@ export function exportPushRecords(params) {
     responseType: 'blob'
   })
 }
+
+/**
+ * 获取推送分组列表（带设备统计）
+ */
+export function getPushGroups() {
+  return request({
+    url: '/push/groups',
+    method: 'get'
+  })
+}

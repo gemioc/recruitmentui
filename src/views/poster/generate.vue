@@ -216,68 +216,117 @@ const previewSvgUrl = computed(() => {
 const buildPreviewSvgUrl = () => {
   if (!selectedTemplate.value) return ''
 
-  // 根据模板颜色方案获取渐变色
-  const colorScheme = selectedTemplate.value.colorScheme || 'BLUE'
-  const colors = {
-    BLUE: {
-      start: '#1e3c72',
-      end: '#2a5298',
-      salaryBg: 'rgba(245,108,108,0.9)'
-    },
-    GREEN: {
-      start: '#11998e',
-      end: '#38ef7d',
-      salaryBg: 'rgba(255,255,255,0.95)',
-      salaryColor: '#11998e'
-    },
-    RED: {
-      start: '#ee0979',
-      end: '#ff6a00',
-      salaryBg: 'rgba(255,255,255,0.95)',
-      salaryColor: '#ee0979'
-    }
-  }
-  const color = colors[colorScheme] || colors.BLUE
+  // 根据模板判断是横版还是竖版
+  const templatePath = selectedTemplate.value.templatePath || ''
+  const isLandscape = templatePath.includes('r3')
 
-  // 创建预览SVG
-  const svgContent = `
-    <svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  // 竖版模板 (r1样式)
+  if (!isLandscape) {
+    const svgContent = `
+    <svg width="600" height="814" viewBox="0 0 600 814" xmlns="http://www.w3.org/2000/svg">
+      <rect width="600" height="814" fill="#2C2C2C"/>
       <defs>
-        <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${color.start}"/>
-          <stop offset="100%" style="stop-color:${color.end}"/>
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#D4AF37"/>
+          <stop offset="100%" style="stop-color:#F0E68C"/>
         </linearGradient>
       </defs>
-      <rect width="1920" height="1080" fill="url(#bg-gradient)"/>
-      <circle cx="1700" cy="150" r="200" fill="rgba(255,255,255,0.05)"/>
-      <circle cx="200" cy="900" r="150" fill="rgba(255,255,255,0.05)"/>
-      <text x="960" y="120" font-family="Microsoft YaHei, sans-serif" font-size="48" fill="rgba(255,255,255,0.9)" text-anchor="middle">诚聘英才</text>
-      <line x1="760" y1="150" x2="1160" y2="150" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-      <text x="960" y="280" font-family="Microsoft YaHei, sans-serif" font-size="72" fill="#fff" text-anchor="middle" font-weight="bold">${formData.jobTitle || '职位名称'}</text>
-      <text x="960" y="380" font-family="Microsoft YaHei, sans-serif" font-size="42" fill="rgba(255,255,255,0.9)" text-anchor="middle">${formData.company || '公司名称'}</text>
-      <rect x="710" y="430" width="500" height="80" rx="10" fill="${color.salaryBg}"/>
-      <text x="960" y="485" font-family="Microsoft YaHei, sans-serif" font-size="48" fill="${color.salaryColor || '#fff'}" text-anchor="middle" font-weight="bold">${formData.salary || '薪资范围'}</text>
-      <rect x="360" y="560" width="1200" height="280" rx="15" fill="rgba(255,255,255,0.1)"/>
-      <text x="960" y="620" font-family="Microsoft YaHei, sans-serif" font-size="28" fill="rgba(255,255,255,0.7)" text-anchor="middle">岗位要求</text>
-      <g transform="translate(460, 680)">
-        <rect x="0" y="0" width="240" height="60" rx="8" fill="rgba(255,255,255,0.15)"/>
-        <text x="120" y="40" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#fff" text-anchor="middle">${formData.location || '不限'}</text>
-        <text x="120" y="-10" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="rgba(255,255,255,0.6)" text-anchor="middle">工作地点</text>
-        <rect x="280" y="0" width="240" height="60" rx="8" fill="rgba(255,255,255,0.15)"/>
-        <text x="400" y="40" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#fff" text-anchor="middle">${formData.education || '不限'}</text>
-        <text x="400" y="-10" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="rgba(255,255,255,0.6)" text-anchor="middle">学历要求</text>
-        <rect x="560" y="0" width="240" height="60" rx="8" fill="rgba(255,255,255,0.15)"/>
-        <text x="680" y="40" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#fff" text-anchor="middle">${formData.experience || '不限'}</text>
-        <text x="680" y="-10" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="rgba(255,255,255,0.6)" text-anchor="middle">经验要求</text>
-      </g>
-      <rect x="360" y="870" width="1200" height="150" rx="15" fill="rgba(255,255,255,0.15)"/>
-      <text x="500" y="920" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)">联系人：</text>
-      <text x="600" y="920" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#fff">${formData.contactName || '-'}</text>
-      <text x="500" y="970" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)">联系电话：</text>
-      <text x="620" y="970" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#fff">${formData.contactPhone || '-'}</text>
-      <text x="960" y="1060" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="rgba(255,255,255,0.4)" text-anchor="middle">期待您的加入</text>
+
+      <!-- 顶部公司名 -->
+      <text x="30" y="50" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#D4AF37" font-weight="500">fotor ${formData.company || '金融投资公司'}</text>
+
+      <!-- 大标题 -->
+      <text x="300" y="150" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="64" fill="#F5F5DC" text-anchor="middle" font-weight="bold">精英 你在哪?</text>
+
+      <!-- 副标题 -->
+      <rect x="50" y="170" width="500" height="50" fill="#D4AF37" opacity="0.9"/>
+      <text x="300" y="205" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#2C2C2C" text-anchor="middle" font-weight="bold">挑战年薪百万·走向人生巅峰</text>
+
+      <!-- 职位信息 -->
+      <text x="30" y="270" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="26" fill="#D4AF37" font-weight="500">${formData.jobTitle || '分公司总经理'}</text>
+      <text x="320" y="270" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#F5F5DC" font-weight="500">年薪：${formData.salary || '60-100w'}</text>
+      <text x="500" y="270" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#F5F5DC" font-weight="500">坐标：${formData.location || '成都'}</text>
+
+      <!-- 职位描述 -->
+      <rect x="30" y="290" width="540" height="180" rx="4" stroke="#D4AF37" stroke-width="1" fill="none"/>
+      <text x="50" y="325" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#D4AF37" font-weight="bold">职位描述：</text>
+      <text x="50" y="360" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#F5F5DC" font-weight="400">
+        <tspan x="50" dy="0">制定分公司营销业务增长目标并有效执行</tspan>
+        <tspan x="50" dy="25">负责分公司营销团队的组建；</tspan>
+        <tspan x="50" dy="25">带领下属共同完成分公司整体业务指标；</tspan>
+        <tspan x="50" dy="25">负责分公司员工的考核和培训；</tspan>
+        <tspan x="50" dy="25">不断开发大客户资源并作长期维护。</tspan>
+      </text>
+
+      <!-- 任职要求 -->
+      <rect x="30" y="480" width="540" height="200" rx="4" stroke="#D4AF37" stroke-width="1" fill="none"/>
+      <text x="50" y="515" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#D4AF37" font-weight="bold">任职要求：</text>
+      <text x="50" y="550" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#F5F5DC" font-weight="400">
+        <tspan x="50" dy="0">六年以上金融机构工作经验；</tspan>
+        <tspan x="50" dy="25">有成功运营10人以上团队经验；</tspan>
+        <tspan x="50" dy="25">有较好的客户开拓与维护能力；</tspan>
+        <tspan x="50" dy="25">良好的沟通协调能力，能承受工作压力；</tspan>
+        <tspan x="50" dy="25">有现成的大客户资源者优先。</tspan>
+      </text>
+
+      <!-- 底部 -->
+      <text x="300" y="720" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" fill="#D4AF37" text-anchor="middle">求贤若渴的我们，同样欢迎您的推荐。</text>
+      <text x="480" y="780" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="20" fill="#D4AF37" font-weight="bold">[投递简历]</text>
     </svg>
   `
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
+  }
+
+  // 横版模板 (r3样式)
+  const svgContent = `
+  <svg width="1733" height="855" viewBox="0 0 1733 855" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1733" height="855" fill="#0066CC"/>
+    <defs>
+      <pattern id="stripes" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="20" stroke="#1A75D1" stroke-width="10"/>
+      </pattern>
+    </defs>
+    <rect width="1733" height="855" fill="url(#stripes)" opacity="0.3"/>
+
+    <!-- 左侧大标题 -->
+    <g transform="translate(100, 150)">
+      <path d="M0 0 Q 50 -30 100 0 T 200 0 T 300 0 T 400 0" fill="#66E0FF" opacity="0.7"/>
+      <text font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="96" fill="#000000" font-weight="900">
+        <tspan x="0" y="100">非你莫属</tspan>
+        <tspan x="0" y="220">招募计划</tspan>
+      </text>
+      <rect x="50" y="250" width="400" height="60" rx="30" fill="#0052B4"/>
+      <text x="250" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="32" fill="#FFFFFF" text-anchor="middle" font-weight="bold">寻找发光的你</text>
+    </g>
+
+    <!-- 右侧岗位信息 -->
+    <g transform="translate(900, 100)">
+      <rect x="0" y="0" width="750" height="450" rx="20" fill="#FFFFFF"/>
+      <text x="375" y="60" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="32" fill="#000000" text-anchor="middle" font-weight="bold">SEARCH AFTER</text>
+      <text x="375" y="120" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="36" fill="#000000" text-anchor="middle" font-weight="bold">招聘岗位 >>>>>>>>>>>>>></text>
+
+      <rect x="100" y="150" width="200" height="50" rx="6" fill="#000000"/>
+      <text x="200" y="185" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#FFFFFF" text-anchor="middle" font-weight="bold">${formData.jobTitle || '抖音运营'}</text>
+      <text x="500" y="185" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#000000" font-weight="bold">${formData.salary || '8000-9000K'}</text>
+
+      <text x="50" y="250" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#000000" font-weight="500">
+        <tspan x="50" dy="0">① 能够独立完成短视频拍摄任务</tspan>
+        <tspan x="50" dy="40">② 负责视频后期剪辑服从公司及部门安排</tspan>
+        <tspan x="50" dy="40">   理解脚本以及账号需求</tspan>
+        <tspan x="50" dy="40">③ 能根据文案脚本运用镜头语言对视</tspan>
+        <tspan x="50" dy="30">   频内容进行画质优化能力。</tspan>
+      </text>
+    </g>
+
+    <!-- 底部联系方式 -->
+    <g transform="translate(100, 700)">
+      <text font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#FFFFFF" font-weight="500">
+        <tspan x="0" dy="0">联系电话：${formData.contactPhone || '010-12345678'}</tspan>
+        <tspan x="0" dy="35">公司地址：${formData.location || '上海市浦东新区图怪兽大楼'}</tspan>
+      </text>
+    </g>
+  </svg>
+`
 
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
 }
@@ -313,11 +362,11 @@ const selectTemplate = (template) => {
 // 获取模板预览URL
 const getTemplatePreviewUrl = (template) => {
   if (!template || !template.templatePath) return ''
-  // 确保路径正确拼接，templatePath格式如: /templates/template-blue.svg
+  // 确保路径正确拼接，templatePath格式如: /templates/template-modern.svg
   const path = template.templatePath.startsWith('/')
     ? template.templatePath
     : '/' + template.templatePath
-  // 返回 /files/templates/template-blue.svg
+  // 返回 /files/templates/template-modern.svg
   return '/files' + path
 }
 
@@ -356,8 +405,8 @@ const handleGenerate = async () => {
       jobId: formData.jobId,
       posterName: formData.title || '海报_' + formData.jobTitle
     })
-    // 后端返回的路径如: /posters/poster_xxx.svg
-    // 通过代理访问: /files/posters/poster_xxx.svg
+    // 后端返回的路径如: /posters/poster_xxx.png
+    // 通过代理访问: /files/posters/poster_xxx.png
     const filePath = res.data.filePath || res.data
     resultImage.value = filePath.startsWith('/')
       ? '/files' + filePath
@@ -393,7 +442,7 @@ const handleReset = () => {
 const handleDownload = () => {
   const link = document.createElement('a')
   link.href = resultImage.value
-  link.download = `${formData.title || '海报'}.svg`
+  link.download = `${formData.title || '海报'}.png`
   link.click()
   ElMessage.success('开始下载')
 }
