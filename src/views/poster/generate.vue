@@ -117,18 +117,42 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="联系方式">
-              <el-switch v-model="formData.showContact" />
+            <el-form-item label="招聘人数">
+              <el-input v-model="formData.recruitCount" placeholder="招聘人数" />
             </el-form-item>
 
-            <template v-if="formData.showContact">
-              <el-form-item label="联系人">
-                <el-input v-model="formData.contactName" placeholder="联系人" />
-              </el-form-item>
-              <el-form-item label="联系电话">
-                <el-input v-model="formData.contactPhone" placeholder="联系电话" />
-              </el-form-item>
-            </template>
+            <el-form-item label="岗位职责">
+              <el-input
+                v-model="formData.responsibilities"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入岗位职责"
+              />
+            </el-form-item>
+
+            <el-form-item label="任职要求">
+              <el-input
+                v-model="formData.requirements"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入任职要求"
+              />
+            </el-form-item>
+
+            <el-form-item label="福利待遇">
+              <el-input v-model="formData.welfare" placeholder="如: 五险一金、双休、年终奖" />
+            </el-form-item>
+
+            <el-divider content-position="left">
+              <span class="divider-title">联系方式</span>
+            </el-divider>
+
+            <el-form-item label="联系人">
+              <el-input v-model="formData.contactName" placeholder="联系人" />
+            </el-form-item>
+            <el-form-item label="联系电话">
+              <el-input v-model="formData.contactPhone" placeholder="联系电话" />
+            </el-form-item>
 
             <el-divider />
 
@@ -183,7 +207,10 @@ const formData = reactive({
   location: '',
   education: '',
   experience: '',
-  showContact: true,
+  recruitCount: '',
+  responsibilities: '',
+  requirements: '',
+  welfare: '',
   contactName: '',
   contactPhone: ''
 })
@@ -207,127 +234,123 @@ const previewStyle = computed(() => ({
 // 预览SVG URL（带数据）
 const previewSvgUrl = computed(() => {
   if (!selectedTemplate.value) return ''
-  // 直接返回模板路径，由后端处理数据填充
-  // 或者在前端构建带数据的SVG
   return buildPreviewSvgUrl()
 })
 
-// 构建预览SVG URL
+// 文本换行处理函数
+const formatTextForSvg = (text, charsPerLine) => {
+  if (!text) return ''
+  const lines = []
+  const paragraphs = text.split('\n')
+
+  for (const para of paragraphs) {
+    if (!para) {
+      lines.push('')
+      continue
+    }
+    let currentLine = ''
+    let charCount = 0
+
+    for (const char of para) {
+      const width = /[\u4e00-\u9fa5]/.test(char) ? 1 : 0.5
+      charCount += width
+
+      if (charCount > charsPerLine && currentLine) {
+        lines.push(currentLine)
+        currentLine = char
+        charCount = width
+      } else {
+        currentLine += char
+      }
+    }
+    if (currentLine) lines.push(currentLine)
+  }
+
+  return lines
+}
+
+// 生成tspan格式的文本
+const generateTspanText = (text, x, lineHeight, charsPerLine) => {
+  const lines = formatTextForSvg(text, charsPerLine)
+  if (lines.length === 0) return ''
+
+  return lines.map((line, index) => {
+    if (index === 0) {
+      return line
+    }
+    return `<tspan x="${x}" dy="${lineHeight}">${line}</tspan>`
+  }).join('')
+}
+
+// 构建预览SVG URL - 横版模板 1920x1080
 const buildPreviewSvgUrl = () => {
   if (!selectedTemplate.value) return ''
 
-  // 根据模板判断是横版还是竖版
-  const templatePath = selectedTemplate.value.templatePath || ''
-  const isLandscape = templatePath.includes('r3')
-
-  // 竖版模板 (r1样式)
-  if (!isLandscape) {
-    const svgContent = `
-    <svg width="600" height="814" viewBox="0 0 600 814" xmlns="http://www.w3.org/2000/svg">
-      <rect width="600" height="814" fill="#2C2C2C"/>
-      <defs>
-        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color:#D4AF37"/>
-          <stop offset="100%" style="stop-color:#F0E68C"/>
-        </linearGradient>
-      </defs>
-
-      <!-- 顶部公司名 -->
-      <text x="30" y="50" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#D4AF37" font-weight="500">fotor ${formData.company || '金融投资公司'}</text>
-
-      <!-- 大标题 -->
-      <text x="300" y="150" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="64" fill="#F5F5DC" text-anchor="middle" font-weight="bold">精英 你在哪?</text>
-
-      <!-- 副标题 -->
-      <rect x="50" y="170" width="500" height="50" fill="#D4AF37" opacity="0.9"/>
-      <text x="300" y="205" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#2C2C2C" text-anchor="middle" font-weight="bold">挑战年薪百万·走向人生巅峰</text>
-
-      <!-- 职位信息 -->
-      <text x="30" y="270" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="26" fill="#D4AF37" font-weight="500">${formData.jobTitle || '分公司总经理'}</text>
-      <text x="320" y="270" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#F5F5DC" font-weight="500">年薪：${formData.salary || '60-100w'}</text>
-      <text x="500" y="270" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#F5F5DC" font-weight="500">坐标：${formData.location || '成都'}</text>
-
-      <!-- 职位描述 -->
-      <rect x="30" y="290" width="540" height="180" rx="4" stroke="#D4AF37" stroke-width="1" fill="none"/>
-      <text x="50" y="325" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#D4AF37" font-weight="bold">职位描述：</text>
-      <text x="50" y="360" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#F5F5DC" font-weight="400">
-        <tspan x="50" dy="0">制定分公司营销业务增长目标并有效执行</tspan>
-        <tspan x="50" dy="25">负责分公司营销团队的组建；</tspan>
-        <tspan x="50" dy="25">带领下属共同完成分公司整体业务指标；</tspan>
-        <tspan x="50" dy="25">负责分公司员工的考核和培训；</tspan>
-        <tspan x="50" dy="25">不断开发大客户资源并作长期维护。</tspan>
-      </text>
-
-      <!-- 任职要求 -->
-      <rect x="30" y="480" width="540" height="200" rx="4" stroke="#D4AF37" stroke-width="1" fill="none"/>
-      <text x="50" y="515" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#D4AF37" font-weight="bold">任职要求：</text>
-      <text x="50" y="550" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#F5F5DC" font-weight="400">
-        <tspan x="50" dy="0">六年以上金融机构工作经验；</tspan>
-        <tspan x="50" dy="25">有成功运营10人以上团队经验；</tspan>
-        <tspan x="50" dy="25">有较好的客户开拓与维护能力；</tspan>
-        <tspan x="50" dy="25">良好的沟通协调能力，能承受工作压力；</tspan>
-        <tspan x="50" dy="25">有现成的大客户资源者优先。</tspan>
-      </text>
-
-      <!-- 底部 -->
-      <text x="300" y="720" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" fill="#D4AF37" text-anchor="middle">求贤若渴的我们，同样欢迎您的推荐。</text>
-      <text x="480" y="780" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="20" fill="#D4AF37" font-weight="bold">[投递简历]</text>
-    </svg>
-  `
-    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
-  }
-
-  // 横版模板 (r3样式)
   const svgContent = `
-  <svg width="1733" height="855" viewBox="0 0 1733 855" xmlns="http://www.w3.org/2000/svg">
-    <rect width="1733" height="855" fill="#0066CC"/>
-    <defs>
-      <pattern id="stripes" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="20" stroke="#1A75D1" stroke-width="10"/>
-      </pattern>
-    </defs>
-    <rect width="1733" height="855" fill="url(#stripes)" opacity="0.3"/>
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A5F"/>
+      <stop offset="100%" style="stop-color:#2B5B8A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bgGrad)"/>
 
-    <!-- 左侧大标题 -->
-    <g transform="translate(100, 150)">
-      <path d="M0 0 Q 50 -30 100 0 T 200 0 T 300 0 T 400 0" fill="#66E0FF" opacity="0.7"/>
-      <text font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="96" fill="#000000" font-weight="900">
-        <tspan x="0" y="100">非你莫属</tspan>
-        <tspan x="0" y="220">招募计划</tspan>
-      </text>
-      <rect x="50" y="250" width="400" height="60" rx="30" fill="#0052B4"/>
-      <text x="250" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="32" fill="#FFFFFF" text-anchor="middle" font-weight="bold">寻找发光的你</text>
+  <g transform="translate(80, 80)">
+    <circle cx="300" cy="350" r="280" fill="#3B82F6" opacity="0.15"/>
+    <circle cx="300" cy="350" r="180" fill="#3B82F6" opacity="0.2"/>
+    <text x="300" y="180" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#FFFFFF" text-anchor="middle" opacity="0.9">${formData.company || '公司名称'}</text>
+    <text x="300" y="280" font-family="Microsoft YaHei, sans-serif" font-size="72" fill="#FFFFFF" text-anchor="middle" font-weight="bold">诚聘英才</text>
+    <text x="300" y="340" font-family="Arial, sans-serif" font-size="28" fill="#FFFFFF" text-anchor="middle" opacity="0.8">JOIN US</text>
+    <rect x="200" y="370" width="200" height="4" fill="#4A90C8" rx="2"/>
+    <rect x="50" y="420" width="500" height="80" rx="10" fill="#FFFFFF" opacity="0.95"/>
+    <text x="300" y="475" font-family="Microsoft YaHei, sans-serif" font-size="36" fill="#1E3A5F" text-anchor="middle" font-weight="bold">${formData.jobTitle || '职位名称'}</text>
+    <text x="300" y="560" font-family="Microsoft YaHei, sans-serif" font-size="42" fill="#FFD700" text-anchor="middle" font-weight="bold">${formData.salary || '面议'}</text>
+  </g>
+
+  <g transform="translate(720, 80)">
+    <rect x="0" y="0" width="1100" height="920" rx="20" fill="#FFFFFF"/>
+    <text x="550" y="50" font-family="Arial, sans-serif" font-size="24" fill="#64748B" text-anchor="middle">POSITION DETAILS</text>
+    <text x="550" y="90" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="#1E3A5F" text-anchor="middle" font-weight="bold">职位详情</text>
+    <line x1="50" y1="115" x2="1050" y2="115" stroke="#E2E8F0" stroke-width="2"/>
+
+    <g transform="translate(50, 140)">
+      <rect x="0" y="0" width="480" height="50" rx="8" fill="#F8FAFC"/>
+      <text x="20" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">工作地点</text>
+      <text x="460" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.location || '不限'}</text>
+
+      <rect x="500" y="0" width="480" height="50" rx="8" fill="#F8FAFC"/>
+      <text x="520" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">学历要求</text>
+      <text x="960" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.education || '不限'}</text>
+
+      <rect x="0" y="65" width="480" height="50" rx="8" fill="#F8FAFC"/>
+      <text x="20" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">经验要求</text>
+      <text x="460" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.experience || '不限'}</text>
+
+      <rect x="500" y="65" width="480" height="50" rx="8" fill="#F8FAFC"/>
+      <text x="520" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">招聘人数</text>
+      <text x="960" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.recruitCount || '若干'}人</text>
     </g>
 
-    <!-- 右侧岗位信息 -->
-    <g transform="translate(900, 100)">
-      <rect x="0" y="0" width="750" height="450" rx="20" fill="#FFFFFF"/>
-      <text x="375" y="60" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="32" fill="#000000" text-anchor="middle" font-weight="bold">SEARCH AFTER</text>
-      <text x="375" y="120" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="36" fill="#000000" text-anchor="middle" font-weight="bold">招聘岗位 >>>>>>>>>>>>>></text>
+    <text x="50" y="300" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#1E3A5F" font-weight="bold">岗位职责</text>
+    <rect x="50" y="320" width="1000" height="120" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="70" y="350" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#475569">${generateTspanText(formData.responsibilities || '面议', 70, 22, 60)}</text>
 
-      <rect x="100" y="150" width="200" height="50" rx="6" fill="#000000"/>
-      <text x="200" y="185" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#FFFFFF" text-anchor="middle" font-weight="bold">${formData.jobTitle || '抖音运营'}</text>
-      <text x="500" y="185" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="28" fill="#000000" font-weight="bold">${formData.salary || '8000-9000K'}</text>
+    <text x="50" y="480" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#1E3A5F" font-weight="bold">任职要求</text>
+    <rect x="50" y="500" width="1000" height="140" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="70" y="535" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#475569">${generateTspanText(formData.requirements || '面议', 70, 22, 60)}</text>
 
-      <text x="50" y="250" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#000000" font-weight="500">
-        <tspan x="50" dy="0">① 能够独立完成短视频拍摄任务</tspan>
-        <tspan x="50" dy="40">② 负责视频后期剪辑服从公司及部门安排</tspan>
-        <tspan x="50" dy="40">   理解脚本以及账号需求</tspan>
-        <tspan x="50" dy="40">③ 能根据文案脚本运用镜头语言对视</tspan>
-        <tspan x="50" dy="30">   频内容进行画质优化能力。</tspan>
-      </text>
-    </g>
+    <text x="50" y="680" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#1E3A5F" font-weight="bold">福利待遇</text>
+    <rect x="50" y="700" width="1000" height="100" rx="10" fill="#EFF6FF"/>
+    <text x="70" y="740" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#475569">${generateTspanText(formData.welfare || '面议', 70, 22, 60)}</text>
 
-    <!-- 底部联系方式 -->
-    <g transform="translate(100, 700)">
-      <text font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" fill="#FFFFFF" font-weight="500">
-        <tspan x="0" dy="0">联系电话：${formData.contactPhone || '010-12345678'}</tspan>
-        <tspan x="0" dy="35">公司地址：${formData.location || '上海市浦东新区图怪兽大楼'}</tspan>
-      </text>
-    </g>
-  </svg>
+    <rect x="50" y="830" width="1000" height="60" rx="10" fill="#1E3A5F"/>
+    <text x="150" y="868" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#FFFFFF">联系人：${formData.contactName || '---'}</text>
+    <text x="550" y="868" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#FFFFFF" text-anchor="middle">联系电话：${formData.contactPhone || '---'}</text>
+    <text x="950" y="868" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#FFFFFF" text-anchor="end" opacity="0.8">期待您的加入</text>
+  </g>
+</svg>
 `
-
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
 }
 
@@ -383,6 +406,10 @@ const handleJobChange = async (jobId) => {
     formData.location = job.workAddress || ''
     formData.education = job.education || ''
     formData.experience = job.experience || ''
+    formData.recruitCount = job.recruitCount || ''
+    formData.responsibilities = job.responsibilities || ''
+    formData.requirements = job.requirements || ''
+    formData.welfare = job.welfare || ''
     formData.contactName = job.contactName || ''
     formData.contactPhone = job.contactPhone || ''
   } catch (error) {
@@ -432,7 +459,10 @@ const handleReset = () => {
     location: '',
     education: '',
     experience: '',
-    showContact: true,
+    recruitCount: '',
+    responsibilities: '',
+    requirements: '',
+    welfare: '',
     contactName: '',
     contactPhone: ''
   })
