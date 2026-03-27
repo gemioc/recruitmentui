@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getPushRecords, getPushDetail, exportPushRecords } from '@/api/push'
 import { formatDate } from '@/utils/format'
@@ -258,6 +258,11 @@ const handleDetail = async (row) => {
 
 // 初始化
 onMounted(() => {
+  fetchRecordList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchRecordList()
 })
 </script>

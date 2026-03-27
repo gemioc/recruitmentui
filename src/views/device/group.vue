@@ -162,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getDeviceGroups,
@@ -409,6 +409,11 @@ const handleRemoveDevice = async (row) => {
 
 // 初始化
 onMounted(() => {
+  fetchGroupList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchGroupList()
 })
 </script>

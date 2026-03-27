@@ -122,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
@@ -280,6 +280,11 @@ const handleDelete = async (row) => {
 
 // 初始化
 onMounted(() => {
+  fetchPosterList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchPosterList()
 })
 </script>

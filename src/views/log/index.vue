@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOperationLogs, clearOperationLogs } from '@/api/log'
 import { formatDate } from '@/utils/format'
@@ -242,6 +242,11 @@ const handleClear = async () => {
 
 // 初始化
 onMounted(() => {
+  fetchLogList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchLogList()
 })
 </script>

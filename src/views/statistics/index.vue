@@ -253,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, onActivated } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import {
@@ -728,6 +728,14 @@ onUnmounted(() => {
   deviceRankChart?.dispose()
   hourChart?.dispose()
 })
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchRealTimeStatistics()
+  fetchDeviceStats()
+  fetchChartStatistics()
+})
+</script>
 </script>
 
 <style lang="scss" scoped>

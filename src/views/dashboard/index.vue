@@ -137,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getPushStatistics, getDeviceStatistics, getContentStatistics } from '@/api/statistics'
@@ -417,6 +417,12 @@ onUnmounted(() => {
   pushChart?.dispose()
   deviceChart?.dispose()
   contentChart?.dispose()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchStatistics()
+  fetchRecentPushRecords()
 })
 </script>
 

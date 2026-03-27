@@ -139,7 +139,32 @@
         label-width="100px"
       >
         <el-form-item label="设备编号" prop="deviceCode">
-          <el-input v-model="formData.deviceCode" placeholder="请输入设备编号" />
+          <el-select
+            v-if="!isEdit"
+            v-model="formData.deviceCode"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入设备编号"
+            style="width: 100%"
+            @focus="fetchPendingDevices"
+          >
+            <el-option
+              v-for="device in pendingDevices"
+              :key="device.deviceCode"
+              :label="device.deviceCode"
+              :value="device.deviceCode"
+            >
+              <div class="device-code-option">
+                <span class="code">{{ device.deviceCode }}</span>
+                <span class="info">
+                  <el-tag type="success" size="small" v-if="device.ip">{{ device.ip }}</el-tag>
+                  <span class="time">{{ device.connectTime }}</span>
+                </span>
+              </div>
+            </el-option>
+          </el-select>
+          <el-input v-else v-model="formData.deviceCode" disabled />
         </el-form-item>
         <el-form-item label="设备名称" prop="deviceName">
           <el-input v-model="formData.deviceName" placeholder="请输入设备名称" />
@@ -232,7 +257,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getDeviceList,
@@ -241,7 +266,8 @@ import {
   updateDevice,
   deleteDevice,
   restartDevice,
-  getDeviceGroups
+  getDeviceGroups,
+  getPendingDevices
 } from '@/api/device'
 import { pushPoster, pushVideo, controlDevice } from '@/api/push'
 import { getPosterList } from '@/api/poster'
@@ -304,6 +330,9 @@ const pushForm = reactive({
 })
 const contentList = ref([])
 
+// 待注册设备
+const pendingDevices = ref([])
+
 // 获取设备分组列表
 const fetchGroupList = async () => {
   try {
@@ -358,7 +387,18 @@ const handleSelectionChange = (selection) => {
 const handleAdd = () => {
   isEdit.value = false
   resetForm()
+  fetchPendingDevices()
   dialogVisible.value = true
+}
+
+// 获取待注册设备列表
+const fetchPendingDevices = async () => {
+  try {
+    const res = await getPendingDevices()
+    pendingDevices.value = res.data || []
+  } catch (error) {
+    console.error('获取待注册设备失败:', error)
+  }
 }
 
 // 编辑
@@ -517,6 +557,11 @@ onMounted(() => {
   fetchGroupList()
   fetchDeviceList()
 })
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchDeviceList()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -545,6 +590,28 @@ onMounted(() => {
       .el-pagination {
         flex: 1;
         justify-content: flex-end;
+      }
+    }
+  }
+
+  .device-code-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+
+    .code {
+      font-weight: 500;
+    }
+
+    .info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .time {
+        font-size: 12px;
+        color: #909399;
       }
     }
   }

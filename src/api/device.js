@@ -138,3 +138,13 @@ export function getDeviceMonitor() {
     method: 'get'
   })
 }
+
+/**
+ * 获取待注册设备列表
+ */
+export function getPendingDevices() {
+  return request({
+    url: '/pending-devices',
+    method: 'get'
+  })
+}

@@ -140,7 +140,12 @@
             </el-form-item>
 
             <el-form-item label="福利待遇">
-              <el-input v-model="formData.welfare" placeholder="如: 五险一金、双休、年终奖" />
+              <el-input
+                v-model="formData.welfare"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入福利待遇，如: 五险一金、双休、年终奖等"
+              />
             </el-form-item>
 
             <el-divider content-position="left">
@@ -182,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getJobList, getJobDetail } from '@/api/job'
@@ -485,6 +490,12 @@ const handlePush = () => {
 
 // 初始化
 onMounted(() => {
+  fetchTemplateList()
+  fetchJobList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchTemplateList()
   fetchJobList()
 })

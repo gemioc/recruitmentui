@@ -188,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser, resetUserPassword } from '@/api/user'
 import { formatDate } from '@/utils/format'
@@ -405,6 +405,11 @@ const handleDelete = async (row) => {
 
 // 初始化
 fetchUserList()
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchUserList()
+})
 </script>
 
 <style lang="scss" scoped>

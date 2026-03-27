@@ -157,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getToken } from '@/utils/auth'
 import { getSystemConfig, updateSystemConfig } from '@/api/config'
@@ -271,6 +271,11 @@ const saveSecurityConfig = async () => {
 
 // 初始化
 onMounted(() => {
+  fetchConfig()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchConfig()
 })
 </script>

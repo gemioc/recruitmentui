@@ -216,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPosterList } from '@/api/poster'
 import { getVideoList } from '@/api/video'
@@ -454,6 +454,11 @@ onMounted(() => {
   fetchContentList()
   fetchGroupList()
   fetchDeviceList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchContentList()
 })
 </script>
 

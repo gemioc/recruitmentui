@@ -164,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getToken } from '@/utils/auth'
 import { getVideoList, createVideo, deleteVideo, setVideoTop } from '@/api/video'
@@ -398,6 +398,11 @@ const handleDelete = async (row) => {
 
 // 初始化
 onMounted(() => {
+  fetchVideoList()
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
   fetchVideoList()
 })
 </script>

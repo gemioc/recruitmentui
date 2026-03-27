@@ -164,7 +164,7 @@
         <div class="detail-section">
           <h3>设备控制</h3>
           <div class="control-buttons">
-            <el-button type="primary" @click="handleControl('play')">
+            <el-button type="primary" @click="handleControl('resume')">
               <el-icon><VideoPlay /></el-icon>
               播放
             </el-button>
@@ -223,7 +223,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   getDeviceList,
@@ -423,6 +423,11 @@ onUnmounted(() => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
   }
+})
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchDeviceList()
 })
 </script>
 

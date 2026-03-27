@@ -210,7 +210,7 @@
           <el-input
             v-model="formData.welfare"
             type="textarea"
-            :rows="3"
+            :rows="4"
             placeholder="请输入福利待遇，多条用逗号分隔"
           />
         </el-form-item>
@@ -269,7 +269,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus } from '@/api/job'
 import { formatDate } from '@/utils/format'
@@ -461,6 +461,11 @@ const handleDelete = async (row) => {
 
 // 初始化
 fetchJobList()
+
+// 页面激活时刷新数据
+onActivated(() => {
+  fetchJobList()
+})
 </script>
 
 <style lang="scss" scoped>
