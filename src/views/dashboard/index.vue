@@ -83,6 +83,10 @@
             </div>
           </template>
           <div ref="pushChartRef" class="chart-container"></div>
+          <div class="chart-empty" style="display: none;">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>暂无数据</span>
+          </div>
         </el-card>
       </el-col>
       <el-col :xs="24" :lg="8">
@@ -91,6 +95,10 @@
             <span>设备状态分布</span>
           </template>
           <div ref="deviceChartRef" class="chart-container"></div>
+          <div class="chart-empty" style="display: none;">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>暂无数据</span>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -99,9 +107,19 @@
       <el-col :xs="24" :lg="12">
         <el-card shadow="hover">
           <template #header>
-            <span>内容类型分布</span>
+            <div class="card-header">
+              <span>内容类型分布</span>
+              <el-radio-group v-model="contentChartType" size="small">
+                <el-radio-button label="week">近7天</el-radio-button>
+                <el-radio-button label="month">近30天</el-radio-button>
+              </el-radio-group>
+            </div>
           </template>
           <div ref="contentChartRef" class="chart-container"></div>
+          <div class="chart-empty" style="display: none;">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>暂无数据</span>
+          </div>
         </el-card>
       </el-col>
       <el-col :xs="24" :lg="12">
@@ -171,6 +189,10 @@ let deviceChart = null
 let contentChart = null
 
 const pushChartType = ref('week')
+const contentChartType = ref('week')
+
+// 定时刷新
+let refreshTimer = null
 
 // 获取统计数据
 const fetchStatistics = async () => {
@@ -181,7 +203,7 @@ const fetchStatistics = async () => {
       getContentStatistics()
     ])
 
-    // 更新统计卡片数据
+    // 更新统计卡片数据（不受筛选影响）
     if (deviceRes.data) {
       statistics.value.deviceCount = deviceRes.data.total || 0
       statistics.value.onlineCount = deviceRes.data.online || 0
@@ -189,7 +211,11 @@ const fetchStatistics = async () => {
     }
 
     if (pushRes.data) {
-      statistics.value.pushCount = pushRes.data.total || 0
+      // 推送次数使用全量数据
+      const allPushRes = await getPushStatistics({ type: 'all' })
+      if (allPushRes.data) {
+        statistics.value.pushCount = allPushRes.data.total || 0
+      }
       statistics.value.todayPushCount = pushRes.data.today || 0
       updatePushChart(pushRes.data.trend || [])
     }
@@ -206,6 +232,18 @@ const fetchStatistics = async () => {
     updateDeviceChart(deviceRes.data?.statusDistribution || [])
   } catch (error) {
     console.error('获取统计数据失败:', error)
+  }
+}
+
+// 获取内容类型分布数据（独立筛选）
+const fetchContentChartData = async () => {
+  try {
+    const res = await getPushStatistics({ type: contentChartType.value })
+    if (res.data && res.data.typeDistribution) {
+      updateContentChart(res.data.typeDistribution)
+    }
+  } catch (error) {
+    console.error('获取内容类型分布失败:', error)
   }
 }
 
@@ -353,9 +391,10 @@ const initContentChart = () => {
 // 更新推送趋势图表
 const updatePushChart = (data) => {
   if (!pushChart) return
+  const hasData = data && data.length > 0 && data.some(item => (item.posterCount || 0) > 0 || (item.videoCount || 0) > 0)
   const dates = data.map(item => item.date)
-  const posterData = data.map(item => item.posterCount)
-  const videoData = data.map(item => item.videoCount)
+  const posterData = data.map(item => item.posterCount || 0)
+  const videoData = data.map(item => item.videoCount || 0)
   pushChart.setOption({
     xAxis: { data: dates },
     series: [
@@ -363,11 +402,14 @@ const updatePushChart = (data) => {
       { data: videoData }
     ]
   })
+  pushChartRef.value.style.display = hasData ? 'block' : 'none'
+  pushChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
 }
 
 // 更新设备状态图表
 const updateDeviceChart = (data) => {
   if (!deviceChart) return
+  const hasData = data && data.length > 0 && data.some(item => (item.count || 0) > 0)
   const chartData = data.map(item => ({
     value: item.count,
     name: item.name
@@ -375,11 +417,14 @@ const updateDeviceChart = (data) => {
   deviceChart.setOption({
     series: [{ data: chartData }]
   })
+  deviceChartRef.value.style.display = hasData ? 'block' : 'none'
+  deviceChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
 }
 
 // 更新内容类型图表
 const updateContentChart = (data) => {
   if (!contentChart) return
+  const hasData = data && data.length > 0 && data.some(item => (item.count || 0) > 0)
   contentChart.setOption({
     series: [{
       data: [
@@ -389,6 +434,8 @@ const updateContentChart = (data) => {
       ]
     }]
   })
+  contentChartRef.value.style.display = hasData ? 'block' : 'none'
+  contentChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
 }
 
 // 窗口大小变化时重新调整图表
@@ -403,17 +450,29 @@ watch(pushChartType, () => {
   fetchStatistics()
 })
 
+watch(contentChartType, () => {
+  fetchContentChartData()
+})
+
 onMounted(() => {
   initPushChart()
   initDeviceChart()
   initContentChart()
   fetchStatistics()
+  fetchContentChartData()
   fetchRecentPushRecords()
+  // 每30秒刷新一次统计数据（卡片数据）
+  refreshTimer = setInterval(() => {
+    fetchStatistics()
+  }, 30000)
   window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
   pushChart?.dispose()
   deviceChart?.dispose()
   contentChart?.dispose()
@@ -508,6 +567,25 @@ onActivated(() => {
 
   .chart-container {
     height: 300px;
+  }
+
+  .chart-empty {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #909399;
+    gap: 12px;
+
+    .el-icon {
+      font-size: 48px;
+      color: #dcdfe6;
+    }
+
+    span {
+      font-size: 14px;
+    }
   }
 
   .card-header {

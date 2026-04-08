@@ -89,9 +89,6 @@
           <div class="metric-value">{{ statistics.totalPush || 0 }}</div>
           <div class="metric-label">推送总次数</div>
         </div>
-        <div class="metric-footer">
-          <span class="metric-time">实时统计</span>
-        </div>
       </div>
 
       <div class="metric-card">
@@ -157,6 +154,10 @@
             </span>
           </template>
           <div ref="trendChartRef" class="chart-container"></div>
+          <div class="chart-empty" style="display: none;">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>暂无数据</span>
+          </div>
         </el-card>
 
         <!-- 内容分布 & 时段分布 -->
@@ -169,6 +170,10 @@
               </span>
             </template>
             <div ref="typeChartRef" class="chart-container small"></div>
+            <div class="chart-empty" style="display: none;">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>暂无数据</span>
+            </div>
           </el-card>
 
           <el-card shadow="hover" class="chart-card">
@@ -179,6 +184,10 @@
               </span>
             </template>
             <div ref="hourChartRef" class="chart-container small"></div>
+            <div class="chart-empty" style="display: none;">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>暂无数据</span>
+            </div>
           </el-card>
         </div>
 
@@ -191,6 +200,10 @@
             </span>
           </template>
           <div ref="deviceRankChartRef" class="chart-container rank"></div>
+          <div class="chart-empty" style="display: none;">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>暂无数据</span>
+          </div>
         </el-card>
       </div>
 
@@ -263,7 +276,6 @@ import {
   exportPushRecords,
   exportStatistics
 } from '@/api/statistics'
-import { formatDate } from '@/utils/format'
 
 // 时间范围
 const dateRange = ref([])
@@ -327,6 +339,9 @@ let trendChart = null
 let typeChart = null
 let deviceRankChart = null
 let hourChart = null
+
+// 定时刷新定时器
+let refreshTimer = null
 
 // 选择设备
 const selectDevice = (device) => {
@@ -418,7 +433,9 @@ const initCharts = () => {
         backgroundColor: 'rgba(255,255,255,0.95)',
         borderColor: '#e4e7ed',
         borderWidth: 1,
-        textStyle: { color: '#606266' }
+        textStyle: { color: '#606266' },
+        confine: true,
+        extraCssText: 'max-width: 200px; white-space: normal;'
       },
       legend: {
         bottom: '5%',
@@ -431,9 +448,13 @@ const initCharts = () => {
         radius: ['45%', '70%'],
         center: ['50%', '45%'],
         avoidLabelOverlap: false,
-        label: { show: false },
+        label: {
+          show: false,
+          position: 'center',
+          formatter: '{b}\n{c} ({d}%)'
+        },
         emphasis: {
-          label: { show: true, fontSize: 14, fontWeight: 'bold' },
+          label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#303133' },
           itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.1)' }
         },
         data: [],
@@ -540,6 +561,7 @@ const initCharts = () => {
 // 更新图表
 const updateCharts = (data) => {
   if (trendChart && data.trend) {
+    const hasData = data.trend && data.trend.length > 0 && data.trend.some(item => item.total > 0 || item.success > 0)
     trendChart.setOption({
       xAxis: { data: data.trend.map(item => item.date) },
       series: [
@@ -547,6 +569,8 @@ const updateCharts = (data) => {
         { data: data.trend.map(item => item.success) }
       ]
     })
+    trendChartRef.value.style.display = hasData ? 'block' : 'none'
+    trendChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
   }
 
   if (typeChart && data.typeDistribution) {
@@ -561,16 +585,22 @@ const updateCharts = (data) => {
   }
 
   if (deviceRankChart && data.deviceRank) {
+    const hasData = data.deviceRank && data.deviceRank.length > 0
     deviceRankChart.setOption({
       yAxis: { data: data.deviceRank.map(item => item.name).reverse() },
       series: [{ data: data.deviceRank.map(item => item.count).reverse() }]
     })
+    deviceRankChartRef.value.style.display = hasData ? 'block' : 'none'
+    deviceRankChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
   }
 
   if (hourChart && data.hourDistribution) {
+    const hasHourData = data.hourDistribution && data.hourDistribution.some(v => v > 0)
     hourChart.setOption({
       series: [{ data: data.hourDistribution }]
     })
+    hourChartRef.value.style.display = hasHourData ? 'block' : 'none'
+    hourChartRef.value.nextElementSibling.style.display = hasHourData ? 'none' : 'flex'
   }
 }
 
@@ -597,11 +627,16 @@ const fetchRealTimeStatistics = async () => {
 // 获取图表统计数据 - 受筛选条件影响
 const fetchChartStatistics = async () => {
   try {
-    const params = { type: timeDimension.value }
+    const params = {
+      type: timeDimension.value
+    }
     if (dateRange.value && dateRange.value.length === 2) {
       params.startDate = dateRange.value[0]
       params.endDate = dateRange.value[1]
     }
+    if (queryParams.deviceId) params.deviceId = queryParams.deviceId
+    if (queryParams.contentType) params.contentType = queryParams.contentType
+    if (queryParams.pushStatus !== null && queryParams.pushStatus !== '') params.pushStatus = queryParams.pushStatus
 
     const res = await getPushStatistics(params)
     if (res.data) {
@@ -712,10 +747,13 @@ const handleResize = () => {
 onMounted(() => {
   initCharts()
   fetchDeviceList()
-  // 卡片数据 - 实时统计
+  // 卡片数据 - 实时统计（不受推送趋势筛选影响，每30秒刷新）
   fetchRealTimeStatistics()
-  // 设备状态 - 实时数据
   fetchDeviceStats()
+  refreshTimer = setInterval(() => {
+    fetchRealTimeStatistics()
+    fetchDeviceStats()
+  }, 30000)
   // 图表数据 - 受筛选影响
   fetchChartStatistics()
   window.addEventListener('resize', handleResize)
@@ -723,6 +761,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
   trendChart?.dispose()
   typeChart?.dispose()
   deviceRankChart?.dispose()
@@ -735,7 +776,6 @@ onActivated(() => {
   fetchDeviceStats()
   fetchChartStatistics()
 })
-</script>
 </script>
 
 <style lang="scss" scoped>
