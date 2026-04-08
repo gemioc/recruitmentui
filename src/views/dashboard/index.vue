@@ -104,25 +104,7 @@
     </el-row>
 
     <el-row :gutter="20" class="chart-row">
-      <el-col :xs="24" :lg="12">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span>内容类型分布</span>
-              <el-radio-group v-model="contentChartType" size="small">
-                <el-radio-button label="week">近7天</el-radio-button>
-                <el-radio-button label="month">近30天</el-radio-button>
-              </el-radio-group>
-            </div>
-          </template>
-          <div ref="contentChartRef" class="chart-container"></div>
-          <div class="chart-empty" style="display: none;">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>暂无数据</span>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :lg="12">
+      <el-col :xs="24">
         <el-card shadow="hover">
           <template #header>
             <div class="card-header">
@@ -133,13 +115,26 @@
             </div>
           </template>
           <el-table :data="recentPushRecords" style="width: 100%">
-            <el-table-column prop="contentTitle" label="内容" min-width="120" />
-            <el-table-column prop="deviceNames" label="目标设备" min-width="100" />
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column prop="contentTitle" label="内容" min-width="150" />
+            <el-table-column prop="pushType" label="类型" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                  {{ row.status === 1 ? '成功' : '失败' }}
+                <el-tag :type="row.pushType === 1 ? 'primary' : 'warning'" size="small">
+                  {{ row.pushType === 1 ? '海报' : '视频' }}
                 </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="deviceNames" label="目标设备" min-width="150" />
+            <el-table-column prop="operatorName" label="推送人" width="100" align="center" />
+            <el-table-column prop="status" label="推送状态" width="80" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 1 ? 'success' : row.status === 0 ? 'warning' : 'danger'" size="small">
+                  {{ row.status === 1 ? '成功' : row.status === 0 ? '推送中' : '失败' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="failReason" label="错误信息" min-width="150" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.status === 1 ? '-' : (row.failReason || '未知错误') }}
               </template>
             </el-table-column>
             <el-table-column label="时间" width="160">
@@ -183,13 +178,10 @@ const recentPushRecords = ref([])
 // 图表
 const pushChartRef = ref(null)
 const deviceChartRef = ref(null)
-const contentChartRef = ref(null)
 let pushChart = null
 let deviceChart = null
-let contentChart = null
 
 const pushChartType = ref('week')
-const contentChartType = ref('week')
 
 // 定时刷新
 let refreshTimer = null
@@ -225,25 +217,12 @@ const fetchStatistics = async () => {
       statistics.value.todayJobCount = contentRes.data.todayJobCount || 0
       statistics.value.posterCount = contentRes.data.posterCount || 0
       statistics.value.todayPosterCount = contentRes.data.todayPosterCount || 0
-      updateContentChart(contentRes.data.typeDistribution || [])
     }
 
     // 更新设备图表
     updateDeviceChart(deviceRes.data?.statusDistribution || [])
   } catch (error) {
     console.error('获取统计数据失败:', error)
-  }
-}
-
-// 获取内容类型分布数据（独立筛选）
-const fetchContentChartData = async () => {
-  try {
-    const res = await getPushStatistics({ type: contentChartType.value })
-    if (res.data && res.data.typeDistribution) {
-      updateContentChart(res.data.typeDistribution)
-    }
-  } catch (error) {
-    console.error('获取内容类型分布失败:', error)
   }
 }
 
@@ -347,47 +326,6 @@ const initDeviceChart = () => {
   })
 }
 
-// 初始化内容类型图表
-const initContentChart = () => {
-  if (!contentChartRef.value) return
-  contentChart = echarts.init(contentChartRef.value)
-  contentChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: ['职位', '海报', '视频']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        type: 'bar',
-        barWidth: '40%',
-        data: [],
-        itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#83bff6' },
-            { offset: 0.5, color: '#188df0' },
-            { offset: 1, color: '#188df0' }
-          ])
-        }
-      }
-    ]
-  })
-}
-
 // 更新推送趋势图表
 const updatePushChart = (data) => {
   if (!pushChart) return
@@ -421,28 +359,10 @@ const updateDeviceChart = (data) => {
   deviceChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
 }
 
-// 更新内容类型图表
-const updateContentChart = (data) => {
-  if (!contentChart) return
-  const hasData = data && data.length > 0 && data.some(item => (item.count || 0) > 0)
-  contentChart.setOption({
-    series: [{
-      data: [
-        data.find(item => item.type === 'job')?.count || 0,
-        data.find(item => item.type === 'poster')?.count || 0,
-        data.find(item => item.type === 'video')?.count || 0
-      ]
-    }]
-  })
-  contentChartRef.value.style.display = hasData ? 'block' : 'none'
-  contentChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
-}
-
 // 窗口大小变化时重新调整图表
 const handleResize = () => {
   pushChart?.resize()
   deviceChart?.resize()
-  contentChart?.resize()
 }
 
 // 监听图表类型变化
@@ -450,16 +370,10 @@ watch(pushChartType, () => {
   fetchStatistics()
 })
 
-watch(contentChartType, () => {
-  fetchContentChartData()
-})
-
 onMounted(() => {
   initPushChart()
   initDeviceChart()
-  initContentChart()
   fetchStatistics()
-  fetchContentChartData()
   fetchRecentPushRecords()
   // 每30秒刷新一次统计数据（卡片数据）
   refreshTimer = setInterval(() => {
@@ -475,7 +389,6 @@ onUnmounted(() => {
   }
   pushChart?.dispose()
   deviceChart?.dispose()
-  contentChart?.dispose()
 })
 
 // 页面激活时刷新数据

@@ -85,3 +85,31 @@ export function batchUpdateJobStatus(ids, status) {
     params: { status }
   })
 }
+
+/**
+ * 下载职位导入模板
+ */
+export function downloadJobTemplate() {
+  return request({
+    url: '/jobs/template',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 批量导入职位
+ * @param {File} file - Excel文件
+ */
+export function importJobs(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/jobs/import',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

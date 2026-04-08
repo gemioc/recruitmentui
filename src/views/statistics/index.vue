@@ -14,48 +14,13 @@
             value-format="YYYY-MM-DD"
             :shortcuts="dateShortcuts"
             style="width: 260px"
+            @change="handleDateRangeChange"
           />
-          <el-radio-group v-model="timeDimension" size="default" @change="fetchChartStatistics">
+          <el-radio-group v-model="timeDimension" size="default" @change="handleTimeDimensionChange">
             <el-radio-button label="day">日</el-radio-button>
             <el-radio-button label="week">周</el-radio-button>
             <el-radio-button label="month">月</el-radio-button>
           </el-radio-group>
-          <el-select
-            v-model="queryParams.deviceId"
-            placeholder="全部设备"
-            clearable
-            filterable
-            style="width: 160px"
-            @change="fetchChartStatistics"
-          >
-            <el-option
-              v-for="device in deviceList"
-              :key="device.id"
-              :label="device.deviceName"
-              :value="device.id"
-            />
-          </el-select>
-          <el-select
-            v-model="queryParams.contentType"
-            placeholder="全部类型"
-            clearable
-            style="width: 120px"
-            @change="fetchChartStatistics"
-          >
-            <el-option label="海报" :value="1" />
-            <el-option label="视频" :value="2" />
-          </el-select>
-          <el-select
-            v-model="queryParams.pushStatus"
-            placeholder="全部状态"
-            clearable
-            style="width: 120px"
-            @change="fetchChartStatistics"
-          >
-            <el-option label="推送中" :value="0" />
-            <el-option label="成功" :value="1" />
-            <el-option label="失败" :value="2" />
-          </el-select>
           <el-button @click="handleReset">
             <el-icon><Refresh /></el-icon>
             重置
@@ -81,7 +46,7 @@
 
     <!-- 核心指标卡片 - 实时数据，不受筛选影响 -->
     <div class="metrics-section">
-      <div class="metric-card">
+      <div class="metric-card clickable" @click="goToPushRecords()">
         <div class="metric-icon primary">
           <el-icon :size="24"><Promotion /></el-icon>
         </div>
@@ -91,7 +56,7 @@
         </div>
       </div>
 
-      <div class="metric-card">
+      <div class="metric-card clickable" @click="goToPushRecords(1)">
         <div class="metric-icon success">
           <el-icon :size="24"><CircleCheck /></el-icon>
         </div>
@@ -110,7 +75,7 @@
         </div>
       </div>
 
-      <div class="metric-card">
+      <div class="metric-card clickable" @click="goToPushRecords(2)">
         <div class="metric-icon danger">
           <el-icon :size="24"><CircleClose /></el-icon>
         </div>
@@ -123,7 +88,7 @@
         </div>
       </div>
 
-      <div class="metric-card">
+      <div class="metric-card clickable" @click="goToDevices">
         <div class="metric-icon info">
           <el-icon :size="24"><Monitor /></el-icon>
         </div>
@@ -236,8 +201,6 @@
                 v-for="device in deviceStats.deviceStatusList"
                 :key="device.id"
                 class="device-item"
-                :class="{ active: queryParams.deviceId === device.id }"
-                @click="selectDevice(device)"
               >
                 <div class="device-header">
                   <span class="device-name">{{ device.name }}</span>
@@ -267,15 +230,17 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, onActivated } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import {
   getPushStatistics,
   getDeviceStatusStatistics,
-  getDeviceList,
   exportPushRecords,
   exportStatistics
 } from '@/api/statistics'
+
+const router = useRouter()
 
 // 时间范围
 const dateRange = ref([])
@@ -308,14 +273,8 @@ const dateShortcuts = [
   }
 ]
 
-// 设备列表
-const deviceList = ref([])
-
 // 查询参数 - 只影响图表
 const queryParams = reactive({
-  deviceId: null,
-  contentType: null,
-  pushStatus: null
 })
 
 // 实时统计数据 - 卡片使用，不受筛选影响
@@ -343,16 +302,6 @@ let hourChart = null
 // 定时刷新定时器
 let refreshTimer = null
 
-// 选择设备
-const selectDevice = (device) => {
-  if (queryParams.deviceId === device.id) {
-    queryParams.deviceId = null
-  } else {
-    queryParams.deviceId = device.id
-  }
-  fetchChartStatistics()
-}
-
 // 初始化图表
 const initCharts = () => {
   // 推送趋势图
@@ -367,7 +316,7 @@ const initCharts = () => {
         textStyle: { color: '#606266' }
       },
       legend: {
-        data: ['推送次数', '成功次数'],
+        data: ['推送次数', '成功次数', '失败次数'],
         bottom: 0,
         itemWidth: 12,
         itemHeight: 12
@@ -418,6 +367,16 @@ const initCharts = () => {
           symbolSize: 6,
           lineStyle: { width: 2, color: '#67c23a' },
           itemStyle: { color: '#67c23a' }
+        },
+        {
+          name: '失败次数',
+          type: 'line',
+          smooth: true,
+          data: [],
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2, color: '#f56c6c' },
+          itemStyle: { color: '#f56c6c' }
         }
       ]
     })
@@ -561,12 +520,13 @@ const initCharts = () => {
 // 更新图表
 const updateCharts = (data) => {
   if (trendChart && data.trend) {
-    const hasData = data.trend && data.trend.length > 0 && data.trend.some(item => item.total > 0 || item.success > 0)
+    const hasData = data.trend && data.trend.length > 0 && data.trend.some(item => item.total > 0 || item.success > 0 || item.fail > 0)
     trendChart.setOption({
       xAxis: { data: data.trend.map(item => item.date) },
       series: [
         { data: data.trend.map(item => item.total) },
-        { data: data.trend.map(item => item.success) }
+        { data: data.trend.map(item => item.success) },
+        { data: data.trend.map(item => item.fail) }
       ]
     })
     trendChartRef.value.style.display = hasData ? 'block' : 'none'
@@ -627,16 +587,14 @@ const fetchRealTimeStatistics = async () => {
 // 获取图表统计数据 - 受筛选条件影响
 const fetchChartStatistics = async () => {
   try {
-    const params = {
-      type: timeDimension.value
-    }
+    const params = {}
     if (dateRange.value && dateRange.value.length === 2) {
+      params.type = 'range'
       params.startDate = dateRange.value[0]
       params.endDate = dateRange.value[1]
+    } else {
+      params.type = timeDimension.value
     }
-    if (queryParams.deviceId) params.deviceId = queryParams.deviceId
-    if (queryParams.contentType) params.contentType = queryParams.contentType
-    if (queryParams.pushStatus !== null && queryParams.pushStatus !== '') params.pushStatus = queryParams.pushStatus
 
     const res = await getPushStatistics(params)
     if (res.data) {
@@ -657,23 +615,38 @@ const fetchDeviceStats = async () => {
   }
 }
 
-// 获取设备列表
-const fetchDeviceList = async () => {
-  try {
-    const res = await getDeviceList()
-    deviceList.value = res.data.records || []
-  } catch (error) {
-    console.error('获取设备列表失败:', error)
+// 跳转到推送记录
+const goToPushRecords = (status) => {
+  const query = {}
+  if (status !== undefined) {
+    query.status = status
   }
+  router.push({ path: '/push/record', query })
+}
+
+// 跳转到设备管理
+const goToDevices = () => {
+  router.push('/device/list')
+}
+
+// 切换时间维度，清空日期区间
+const handleTimeDimensionChange = () => {
+  dateRange.value = []
+  fetchChartStatistics()
+}
+
+// 选择日期区间，清空时间维度
+const handleDateRangeChange = () => {
+  if (dateRange.value && dateRange.value.length === 2) {
+    timeDimension.value = ''
+  }
+  fetchChartStatistics()
 }
 
 // 重置
 const handleReset = () => {
   dateRange.value = []
   timeDimension.value = 'week'
-  queryParams.deviceId = null
-  queryParams.contentType = null
-  queryParams.pushStatus = null
   fetchChartStatistics()
 }
 
@@ -694,8 +667,6 @@ const handleExportRecords = async () => {
       params.startDate = dateRange.value[0]
       params.endDate = dateRange.value[1]
     }
-    if (queryParams.deviceId) params.deviceId = queryParams.deviceId
-    if (queryParams.contentType) params.contentType = queryParams.contentType
 
     const res = await exportPushRecords(params)
     downloadFile(res.data, '推送记录.xlsx')
@@ -746,7 +717,6 @@ const handleResize = () => {
 
 onMounted(() => {
   initCharts()
-  fetchDeviceList()
   // 卡片数据 - 实时统计（不受推送趋势筛选影响，每30秒刷新）
   fetchRealTimeStatistics()
   fetchDeviceStats()
@@ -841,6 +811,10 @@ onActivated(() => {
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+
+  &.clickable {
+    cursor: pointer;
+  }
 
   &:hover {
     transform: translateY(-2px);

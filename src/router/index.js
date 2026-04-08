@@ -64,7 +64,7 @@ export const asyncRoutes = [
             path: 'monitor',
             name: 'DeviceMonitor',
             component: () => import('@/views/device/monitor.vue'),
-            meta: { title: '实时监控' }
+            meta: { title: '实时监控', hidden: true }
           }
         ]
       },
@@ -137,6 +137,12 @@ export const asyncRoutes = [
         name: 'Config',
         component: () => import('@/views/config/index.vue'),
         meta: { title: '系统配置', icon: 'Setting', roles: ['admin'] }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人中心', icon: 'User' }
       }
     ]
   },

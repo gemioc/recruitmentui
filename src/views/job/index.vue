@@ -43,10 +43,20 @@
       <template #header>
         <div class="card-header">
           <span>职位列表</span>
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
-            新增职位
-          </el-button>
+          <div class="button-group">
+            <el-button type="success" @click="handleImport">
+              <el-icon><Upload /></el-icon>
+              批量导入
+            </el-button>
+            <el-button class="template-btn" @click="handleDownloadTemplate">
+              <el-icon><Download /></el-icon>
+              模板下载
+            </el-button>
+            <el-button type="primary" @click="handleAdd">
+              <el-icon><Plus /></el-icon>
+              新增职位
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -265,13 +275,57 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 导入弹窗 -->
+    <el-dialog v-model="importVisible" title="批量导入职位" width="500px">
+      <div class="import-dialog">
+        <el-upload
+          ref="uploadRef"
+          class="upload-demo"
+          drag
+          :auto-upload="false"
+          :limit="1"
+          accept=".xlsx,.xls"
+          :on-change="handleFileChange"
+          :on-remove="handleFileRemove"
+        >
+          <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+          <div class="el-upload__text">
+            将Excel文件拖到此处，或<em>点击上传</em>
+          </div>
+          <template #tip>
+            <div class="el-upload__tip">
+              只能上传 xlsx/xls 文件，请先<el-button type="primary" link @click="handleDownloadTemplate">下载模板</el-button>
+            </div>
+          </template>
+        </el-upload>
+        <div v-if="importResult" class="import-result">
+          <el-alert
+            :title="`导入完成：成功 ${importResult.success} 条，失败 ${importResult.fail} 条`"
+            :type="importResult.fail > 0 ? 'warning' : 'success'"
+            :closable="false"
+          />
+          <div v-if="importResult.errors && importResult.errors.length > 0" class="error-list">
+            <el-scrollbar height="150px">
+              <p v-for="(error, index) in importResult.errors.slice(0, 10)" :key="index" class="error-item">
+                {{ error }}
+              </p>
+            </el-scrollbar>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="importVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleConfirmImport" :loading="importLoading">确定导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus } from '@/api/job'
+import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus, downloadJobTemplate, importJobs } from '@/api/job'
 import { formatDate } from '@/utils/format'
 
 // 查询参数
@@ -330,6 +384,13 @@ const formRules = {
 // 预览
 const previewVisible = ref(false)
 const previewData = ref(null)
+
+// 导入
+const importVisible = ref(false)
+const importLoading = ref(false)
+const uploadRef = ref(null)
+const importFile = ref(null)
+const importResult = ref(null)
 
 // 获取职位列表
 const fetchJobList = async () => {
@@ -459,6 +520,76 @@ const handleDelete = async (row) => {
   }
 }
 
+// 下载导入模板
+const handleDownloadTemplate = async () => {
+  try {
+    const res = await downloadJobTemplate()
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '职位导入模板.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    console.error('模板下载失败:', error)
+    ElMessage.error('模板下载失败')
+  }
+}
+
+// 打开导入弹窗
+const handleImport = () => {
+  importFile.value = null
+  importResult.value = null
+  uploadRef.value?.clearFiles()
+  importVisible.value = true
+}
+
+// 文件选择
+const handleFileChange = (file) => {
+  importFile.value = file.raw
+}
+
+// 文件移除
+const handleFileRemove = () => {
+  importFile.value = null
+}
+
+// 确认导入
+const handleConfirmImport = async () => {
+  if (!importFile.value) {
+    ElMessage.warning('请选择要导入的文件')
+    return
+  }
+  importLoading.value = true
+  try {
+    const res = await importJobs(importFile.value)
+    if (res.code === 200) {
+      importResult.value = res.data
+      const { success, fail } = res.data
+      if (fail > 0) {
+        ElMessage.warning(`导入完成：成功 ${success} 条，失败 ${fail} 条`)
+      } else {
+        ElMessage.success(`导入成功：${success} 条`)
+        // 成功后关闭弹窗并清除文件
+        importVisible.value = false
+        importFile.value = null
+        uploadRef.value?.clearFiles()
+        fetchJobList()
+      }
+    } else {
+      ElMessage.error(res.message || '导入失败')
+    }
+  } catch (error) {
+    console.error('导入失败:', error)
+    ElMessage.error('导入失败')
+  } finally {
+    importLoading.value = false
+  }
+}
+
 // 初始化
 fetchJobList()
 
@@ -555,6 +686,47 @@ onActivated(() => {
         color: #333;
       }
     }
+  }
+}
+
+.import-dialog {
+  .upload-demo {
+    text-align: center;
+  }
+
+  .import-result {
+    margin-top: 20px;
+
+    .error-list {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fef0f0;
+      border-radius: 4px;
+
+      .error-item {
+        color: #f56c6c;
+        font-size: 12px;
+        margin: 5px 0;
+      }
+    }
+  }
+}
+
+.card-header {
+  .button-group {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+.template-btn {
+  background: #6c757d;
+  border: none;
+  color: #fff;
+
+  &:hover {
+    background: #5a6268;
+    color: #fff;
   }
 }
 </style>

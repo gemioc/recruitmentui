@@ -149,10 +149,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated } from 'vue'
+import { ref, reactive, onMounted, onActivated, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getPushRecords, getPushDetail, exportPushRecords } from '@/api/push'
 import { formatDate } from '@/utils/format'
+
+const route = useRoute()
+const router = useRouter()
 
 // 查询参数
 const queryParams = reactive({
@@ -200,6 +204,24 @@ const fetchRecordList = async () => {
     loading.value = false
   }
 }
+
+// 监听路由参数变化
+watch(
+  () => route.query,
+  (query) => {
+    if (query.status !== undefined) {
+      queryParams.status = Number(query.status)
+    } else {
+      queryParams.status = null
+    }
+    if (query.startDate && query.endDate) {
+      queryParams.dateRange = [query.startDate, query.endDate]
+    } else {
+      queryParams.dateRange = null
+    }
+    fetchRecordList()
+  }
+)
 
 // 搜索
 const handleSearch = () => {
@@ -256,13 +278,19 @@ const handleDetail = async (row) => {
   }
 }
 
-// 初始化
-onMounted(() => {
+// 页面激活时刷新数据
+onActivated(() => {
   fetchRecordList()
 })
 
-// 页面激活时刷新数据
-onActivated(() => {
+// 初始化
+onMounted(() => {
+  if (route.query.status !== undefined) {
+    queryParams.status = Number(route.query.status)
+  }
+  if (route.query.startDate && route.query.endDate) {
+    queryParams.dateRange = [route.query.startDate, route.query.endDate]
+  }
   fetchRecordList()
 })
 </script>

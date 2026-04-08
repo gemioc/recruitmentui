@@ -209,7 +209,7 @@ const toggleSidebar = () => {
 const handleCommand = (command) => {
   switch (command) {
     case 'profile':
-      // 个人信息
+      router.push('/profile')
       break
     case 'password':
       passwordDialogVisible.value = true
