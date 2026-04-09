@@ -31,7 +31,6 @@
           </template>
           <div class="preview-area">
             <div class="preview-wrapper">
-              <!-- 使用iframe或object显示SVG -->
               <object
                 :data="previewSvgUrl"
                 type="image/svg+xml"
@@ -144,7 +143,7 @@
                 v-model="formData.welfare"
                 type="textarea"
                 :rows="3"
-                placeholder="请输入福利待遇，如: 五险一金、双休、年终奖等"
+                placeholder="请输入福利待遇，如: 五险一金，双休、年终奖等"
               />
             </el-form-item>
 
@@ -192,6 +191,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getJobList, getJobDetail } from '@/api/job'
 import { getPosterTemplates, generatePoster } from '@/api/poster'
+import { renderTemplate, tech01Template } from '@/utils/posterTemplateEngine'
+import '@/utils/posterTemplateEngine' // 确保注册
 
 const router = useRouter()
 
@@ -231,11 +232,6 @@ const generating = ref(false)
 const resultVisible = ref(false)
 const resultImage = ref('')
 
-// 预览样式
-const previewStyle = computed(() => ({
-  aspectRatio: selectedTemplate.value?.aspectRatio || '16/9'
-}))
-
 // 预览SVG URL（带数据）
 const previewSvgUrl = computed(() => {
   if (!selectedTemplate.value) return ''
@@ -247,19 +243,13 @@ const formatTextForSvg = (text, charsPerLine) => {
   if (!text) return ''
   const lines = []
   const paragraphs = text.split('\n')
-
   for (const para of paragraphs) {
-    if (!para) {
-      lines.push('')
-      continue
-    }
+    if (!para) { lines.push(''); continue }
     let currentLine = ''
     let charCount = 0
-
     for (const char of para) {
       const width = /[\u4e00-\u9fa5]/.test(char) ? 1 : 0.5
       charCount += width
-
       if (charCount > charsPerLine && currentLine) {
         lines.push(currentLine)
         currentLine = char
@@ -270,7 +260,6 @@ const formatTextForSvg = (text, charsPerLine) => {
     }
     if (currentLine) lines.push(currentLine)
   }
-
   return lines
 }
 
@@ -278,84 +267,51 @@ const formatTextForSvg = (text, charsPerLine) => {
 const generateTspanText = (text, x, lineHeight, charsPerLine) => {
   const lines = formatTextForSvg(text, charsPerLine)
   if (lines.length === 0) return ''
-
   return lines.map((line, index) => {
-    if (index === 0) {
-      return line
-    }
+    if (index === 0) return line
     return `<tspan x="${x}" dy="${lineHeight}">${line}</tspan>`
   }).join('')
 }
 
-// 构建预览SVG URL - 横版模板 1920x1080
+// 根据模板类型获取SVG内容
+const getSvgTemplateByColorScheme = (colorScheme) => {
+  const c = colorScheme || 'BLUE'
+  if (c === 'ORANGE') {
+    return `<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="energyBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF4E6"/><stop offset="100%" style="stop-color:#FFE4CC"/></linearGradient><linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#FF6B35"/><stop offset="100%" style="stop-color:#FFB347"/></linearGradient><linearGradient id="warmCard" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FFFFFF"/><stop offset="100%" style="stop-color:#FFFAF5"/></linearGradient></defs><rect width="1920" height="1080" fill="url(#energyBg)"/><circle cx="1600" cy="150" r="250" fill="#FF6B35" opacity="0.08"/><circle cx="1750" cy="300" r="180" fill="#FFB347" opacity="0.1"/><circle cx="100" cy="900" r="200" fill="#FF6B35" opacity="0.08"/><rect x="0" y="0" width="1920" height="16" fill="url(#orangeGrad)"/><rect x="60" y="80" width="600" height="920" rx="20" fill="url(#warmCard)"/><rect x="60" y="80" width="600" height="140" rx="20" fill="#FF6B35"/><rect x="60" y="180" width="600" height="40" fill="#FF6B35"/><text x="360" y="150" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#FFFFFF" text-anchor="middle" opacity="0.9">${formData.company || '公司名称'}</text><text x="360" y="200" font-family="Microsoft YaHei, sans-serif" font-size="60" fill="#FFFFFF" text-anchor="middle" font-weight="bold">招 贤 纳 士</text><rect x="100" y="260" width="520" height="110" rx="16" fill="#FFFFFF" stroke="#FF6B35" stroke-width="3"/><text x="360" y="330" font-family="Microsoft YaHei, sans-serif" font-size="38" fill="#FF6B35" text-anchor="middle" font-weight="bold">${formData.jobTitle || '职位名称'}</text><rect x="100" y="400" width="520" height="80" rx="12" fill="#FF6B35"/><text x="360" y="455" font-family="Microsoft YaHei, sans-serif" font-size="40" fill="#FFFFFF" text-anchor="middle" font-weight="bold">${formData.salary || '面议'}</text><g transform="translate(100, 520)"><rect x="0" y="0" width="245" height="80" rx="10" fill="#FFF0E6"/><text x="122" y="30" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#999999" text-anchor="middle">工作地点</text><text x="122" y="58" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#FF6B35" text-anchor="middle" font-weight="bold">${formData.location || '不限'}</text><rect x="265" y="0" width="245" height="80" rx="10" fill="#FFF0E6"/><text x="387" y="30" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#999999" text-anchor="middle">学历要求</text><text x="387" y="58" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#FF6B35" text-anchor="middle" font-weight="bold">${formData.education || '不限'}</text><rect x="0" y="90" width="245" height="80" rx="10" fill="#FFF0E6"/><text x="122" y="120" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#999999" text-anchor="middle">经验要求</text><text x="122" y="148" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#FF6B35" text-anchor="middle" font-weight="bold">${formData.experience || '不限'}</text><rect x="265" y="90" width="245" height="80" rx="10" fill="#FFF0E6"/><text x="387" y="120" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#999999" text-anchor="middle">招聘人数</text><text x="387" y="148" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#FF6B35" text-anchor="middle" font-weight="bold">${formData.recruitCount || '若干'}</text></g><text x="100" y="740" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#FF6B35" font-weight="bold">★ 福利待遇 ★</text><rect x="100" y="760" width="520" height="70" rx="10" fill="#FFF0E6"/><text x="120" y="802" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#666666">${formData.welfare || '福利待遇'}</text><rect x="700" y="80" width="1160" height="920" rx="20" fill="url(#warmCard)"/><rect x="700" y="80" width="1160" height="12" fill="url(#orangeGrad)"/><text x="760" y="150" font-family="Microsoft YaHei, sans-serif" font-size="36" fill="#FF6B35" font-weight="bold">职位详情</text><text x="760" y="185" font-family="Arial, sans-serif" font-size="16" fill="#999999">JOB DETAILS</text><line x1="760" y1="210" x2="1780" y2="210" stroke="#FFD4B8" stroke-width="2"/><rect x="700" y="240" width="8" height="200" rx="4" fill="#FF6B35"/><rect x="708" y="240" width="1132" height="200" rx="0" fill="#FFFAF5"/><text x="760" y="280" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#FF6B35" font-weight="bold">岗位职责</text><text x="760" y="320" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#555555">${generateTspanText(formData.responsibilities || '岗位职责内容', 70, 22, 60)}</text><rect x="700" y="460" width="8" height="200" rx="4" fill="#FFB347"/><rect x="708" y="460" width="1132" height="200" rx="0" fill="#FFFAF5"/><text x="760" y="500" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#FF8C00" font-weight="bold">任职要求</text><text x="760" y="540" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#555555">${generateTspanText(formData.requirements || '任职要求内容', 70, 22, 60)}</text><rect x="760" y="720" width="1040" height="100" rx="16" fill="#FF6B35"/><text x="900" y="770" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#FFFFFF" font-weight="bold">联系人：${formData.contactName || '---'}</text><text x="1300" y="770" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#FFFFFF" font-weight="bold">电话：${formData.contactPhone || '---'}</text><rect x="0" y="1064" width="1920" height="16" fill="url(#orangeGrad)"/></svg>`
+  }
+  if (c === 'GREEN') {
+    return `<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="natureBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#F0FDF4"/><stop offset="100%" style="stop-color:#DCFCE7"/></linearGradient><linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#22C55E"/><stop offset="100%" style="stop-color:#4ADE80"/></linearGradient><linearGradient id="leafPattern" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#86EFAC;stop-opacity:0.3"/><stop offset="100%" style="stop-color:#22C55E;stop-opacity:0.1"/></linearGradient></defs><rect width="1920" height="1080" fill="url(#natureBg)"/><rect x="0" y="0" width="1920" height="160" fill="url(#greenGrad)"/><circle cx="1650" cy="60" r="180" fill="#ffffff" opacity="0.15"/><circle cx="1800" cy="120" r="120" fill="#ffffff" opacity="0.1"/><circle cx="120" cy="80" r="100" fill="#ffffff" opacity="0.15"/><text x="960" y="100" font-family="Microsoft YaHei, sans-serif" font-size="72" fill="#FFFFFF" text-anchor="middle" font-weight="bold">JOIN US</text><rect x="140" y="200" width="1640" height="720" rx="24" fill="#FFFFFF"/><rect x="140" y="200" width="640" height="720" rx="24" fill="#FFFFFF"/><rect x="140" y="200" width="640" height="720" rx="24" fill="url(#leafPattern)"/><text x="460" y="280" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#166534" text-anchor="middle">${formData.company || '公司名称'}</text><rect x="260" y="310" width="400" height="4" rx="2" fill="url(#greenGrad)"/><text x="460" y="400" font-family="Microsoft YaHei, sans-serif" font-size="44" fill="#14532D" text-anchor="middle" font-weight="bold">${formData.jobTitle || '职位名称'}</text><rect x="200" y="440" width="520" height="70" rx="12" fill="#DCFCE7"/><text x="460" y="492" font-family="Microsoft YaHei, sans-serif" font-size="36" fill="#16A34A" text-anchor="middle" font-weight="bold">${formData.salary || '面议'}</text><g transform="translate(200, 550)"><rect x="0" y="0" width="230" height="90" rx="12" fill="#FFFFFF" stroke="#22C55E" stroke-width="2"/><text x="115" y="30" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#6B7280" text-anchor="middle">工作地点</text><text x="115" y="60" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#14532D" text-anchor="middle" font-weight="bold">${formData.location || '不限'}</text><rect x="250" y="0" width="230" height="90" rx="12" fill="#FFFFFF" stroke="#22C55E" stroke-width="2"/><text x="365" y="30" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#6B7280" text-anchor="middle">学历要求</text><text x="365" y="60" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#14532D" text-anchor="middle" font-weight="bold">${formData.education || '不限'}</text><rect x="0" y="100" width="230" height="90" rx="12" fill="#FFFFFF" stroke="#22C55E" stroke-width="2"/><text x="115" y="130" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#6B7280" text-anchor="middle">经验要求</text><text x="115" y="160" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#14532D" text-anchor="middle" font-weight="bold">${formData.experience || '不限'}</text><rect x="250" y="100" width="230" height="90" rx="12" fill="#FFFFFF" stroke="#22C55E" stroke-width="2"/><text x="365" y="130" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#6B7280" text-anchor="middle">招聘人数</text><text x="365" y="160" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#14532D" text-anchor="middle" font-weight="bold">${formData.recruitCount || '若干'}</text></g><rect x="820" y="200" width="960" height="720" rx="0" fill="#FFFFFF"/><rect x="820" y="200" width="960" height="10" fill="url(#greenGrad)"/><text x="860" y="270" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#14532D" font-weight="bold">福利待遇</text><rect x="860" y="295" width="880" height="70" rx="12" fill="#F0FDF4" stroke="#22C55E" stroke-width="1"/><text x="885" y="340" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#166534">${formData.welfare || '福利待遇'}</text><text x="860" y="410" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#14532D" font-weight="bold">岗位职责</text><rect x="820" y="420" width="8" height="150" rx="4" fill="#22C55E"/><rect x="828" y="420" width="932" height="150" rx="0" fill="#F0FDF4"/><text x="860" y="455" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#374151">${generateTspanText(formData.responsibilities || '岗位职责内容', 70, 22, 60)}</text><text x="860" y="610" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="#14532D" font-weight="bold">任职要求</text><rect x="820" y="620" width="8" height="150" rx="4" fill="#4ADE80"/><rect x="828" y="620" width="932" height="150" rx="0" fill="#F0FDF4"/><text x="860" y="655" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#374151">${generateTspanText(formData.requirements || '任职要求内容', 70, 22, 60)}</text><rect x="820" y="800" width="920" height="80" rx="12" fill="#14532D"/><text x="900" y="845" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#FFFFFF">联系人：${formData.contactName || '---'}</text><text x="1200" y="845" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#86EFAC">电话：${formData.contactPhone || '---'}</text><rect x="140" y="920" width="1640" height="10" rx="5" fill="url(#greenGrad)"/></svg>`
+  }
+  return `<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="techBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a1628"/><stop offset="50%" style="stop-color:#1a3a5c"/><stop offset="100%" style="stop-color:#0d2137"/></linearGradient><linearGradient id="techLine" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#00D4FF;stop-opacity:0"/><stop offset="50%" style="stop-color:#00D4FF;stop-opacity:1"/><stop offset="100%" style="stop-color:#00D4FF;stop-opacity:0"/></linearGradient><linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95"/><stop offset="100%" style="stop-color:#f0f8ff;stop-opacity:0.95"/></linearGradient></defs><rect width="1920" height="1080" fill="url(#techBg)"/><line x1="0" y1="200" x2="600" y2="200" stroke="url(#techLine)" stroke-width="1"/><line x1="1320" y1="200" x2="1920" y2="200" stroke="url(#techLine)" stroke-width="1"/><line x1="0" y1="880" x2="500" y2="880" stroke="url(#techLine)" stroke-width="1"/><line x1="1420" y1="880" x2="1920" y2="880" stroke="url(#techLine)" stroke-width="1"/><polygon points="1700,100 1750,180 1650,180" fill="none" stroke="#00D4FF" stroke-width="1" opacity="0.5"/><polygon points="200,900 250,980 150,980" fill="none" stroke="#00D4FF" stroke-width="1" opacity="0.5"/><circle cx="1750" cy="800" r="80" fill="none" stroke="#00D4FF" stroke-width="1" opacity="0.3"/><circle cx="170" cy="180" r="60" fill="none" stroke="#00D4FF" stroke-width="1" opacity="0.3"/><rect x="60" y="120" width="580" height="840" rx="16" fill="url(#cardGrad)"/><rect x="60" y="120" width="580" height="8" rx="4" fill="#00D4FF"/><text x="350" y="180" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#5a7a9a" text-anchor="middle">${formData.company || '公司名称'}</text><text x="350" y="260" font-family="Microsoft YaHei, sans-serif" font-size="56" fill="#0a1628" text-anchor="middle" font-weight="bold">职等你来</text><text x="350" y="310" font-family="Arial, sans-serif" font-size="28" fill="#00D4FF" text-anchor="middle" letter-spacing="8">WE WANT YOU</text><line x1="150" y1="350" x2="550" y2="350" stroke="#e0e8f0" stroke-width="2"/><rect x="100" y="380" width="500" height="100" rx="12" fill="#f8fafc" stroke="#00D4FF" stroke-width="2"/><text x="350" y="445" font-family="Microsoft YaHei, sans-serif" font-size="36" fill="#0a1628" text-anchor="middle" font-weight="bold">${formData.jobTitle || '职位名称'}</text><text x="350" y="540" font-family="Microsoft YaHei, sans-serif" font-size="44" fill="#00D4FF" text-anchor="middle" font-weight="bold">${formData.salary || '面议'}</text><g transform="translate(0, 580)"><rect x="80" y="0" width="130" height="70" rx="8" fill="#e6f7ff"/><text x="145" y="28" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5a7a9a" text-anchor="middle">工作地点</text><text x="145" y="52" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#0a1628" text-anchor="middle" font-weight="bold">${formData.location || '不限'}</text><rect x="225" y="0" width="130" height="70" rx="8" fill="#e6f7ff"/><text x="290" y="28" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5a7a9a" text-anchor="middle">学历要求</text><text x="290" y="52" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#0a1628" text-anchor="middle" font-weight="bold">${formData.education || '不限'}</text><rect x="370" y="0" width="130" height="70" rx="8" fill="#e6f7ff"/><text x="435" y="28" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5a7a9a" text-anchor="middle">经验要求</text><text x="435" y="52" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#0a1628" text-anchor="middle" font-weight="bold">${formData.experience || '不限'}</text></g><rect x="80" y="680" width="500" height="60" rx="8" fill="#0a1628"/><text x="100" y="720" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#00D4FF">福  利</text><text x="180" y="720" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#ffffff">${formData.welfare || '福利待遇'}</text><rect x="680" y="120" width="1180" height="840" rx="16" fill="url(#cardGrad)"/><rect x="680" y="120" width="1180" height="8" rx="4" fill="#00D4FF"/><text x="720" y="180" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="#0a1628" font-weight="bold">职位详情</text><text x="720" y="215" font-family="Arial, sans-serif" font-size="16" fill="#5a7a9a">POSITION DETAILS</text><line x1="720" y1="240" x2="1800" y2="240" stroke="#e0e8f0" stroke-width="1"/><g transform="translate(720, 270)"><rect x="0" y="0" width="530" height="70" rx="8" fill="#f0f8ff"/><text x="20" y="25" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#5a7a9a">工作地点</text><text x="20" y="52" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#0a1628" font-weight="500">${formData.location || '不限'}</text><rect x="560" y="0" width="530" height="70" rx="8" fill="#f0f8ff"/><text x="580" y="25" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#5a7a9a">学历要求</text><text x="580" y="52" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#0a1628" font-weight="500">${formData.education || '不限'}</text><rect x="0" y="85" width="530" height="70" rx="8" fill="#f0f8ff"/><text x="20" y="110" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#5a7a9a">经验要求</text><text x="20" y="137" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#0a1628" font-weight="500">${formData.experience || '不限'}</text><rect x="560" y="85" width="530" height="70" rx="8" fill="#f0f8ff"/><text x="580" y="110" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#5a7a9a">招聘人数</text><text x="580" y="137" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#0a1628" font-weight="500">${formData.recruitCount || '若干'} 人</text></g><text x="720" y="470" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#0a1628" font-weight="bold">岗位职责</text><rect x="720" y="490" width="1080" height="120" rx="8" fill="#f8fafc" stroke="#e0e8f0" stroke-width="1"/><text x="740" y="520" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#37474f">${generateTspanText(formData.responsibilities || '岗位职责内容', 70, 22, 60)}</text><text x="720" y="640" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#0a1628" font-weight="bold">任职要求</text><rect x="720" y="660" width="1080" height="120" rx="8" fill="#f8fafc" stroke="#e0e8f0" stroke-width="1"/><text x="740" y="690" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#37474f">${generateTspanText(formData.requirements || '任职要求内容', 70, 22, 60)}</text><rect x="720" y="820" width="1080" height="80" rx="8" fill="#0a1628"/><text x="770" y="865" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#00D4FF">联 系 人：${formData.contactName || '---'}</text><text x="1100" y="865" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#ffffff">电    话：${formData.contactPhone || '---'}</text></svg>`
+}
+
+// 构建预览SVG URL
 const buildPreviewSvgUrl = () => {
   if (!selectedTemplate.value) return ''
+  const colorScheme = selectedTemplate.value.colorScheme || 'BLUE'
 
-  const svgContent = `
-<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1E3A5F"/>
-      <stop offset="100%" style="stop-color:#2B5B8A"/>
-    </linearGradient>
-  </defs>
-  <rect width="1920" height="1080" fill="url(#bgGrad)"/>
+  // BLUE 类型使用 JSON 模板引擎渲染
+  // BLUE 和 GREEN 使用 JSON 模板引擎
+  if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
+    try {
+      // 根据 templatePath 判断使用哪个模板
+      const templatePath = selectedTemplate.value.templatePath || ''
+      let templateId = 'tech_01'
+      if (templatePath.includes('admin')) {
+        templateId = 'admin_01'
+      } else if (templatePath.includes('tech_02') || colorScheme === 'GREEN') {
+        templateId = 'tech_02'
+      }
+      const svgContent = renderTemplate(templateId, formData)
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
+    } catch (e) {
+      console.error('模板渲染失败:', e)
+      return ''
+    }
+  }
 
-  <g transform="translate(80, 80)">
-    <circle cx="300" cy="350" r="280" fill="#3B82F6" opacity="0.15"/>
-    <circle cx="300" cy="350" r="180" fill="#3B82F6" opacity="0.2"/>
-    <text x="300" y="180" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="#FFFFFF" text-anchor="middle" opacity="0.9">${formData.company || '公司名称'}</text>
-    <text x="300" y="280" font-family="Microsoft YaHei, sans-serif" font-size="72" fill="#FFFFFF" text-anchor="middle" font-weight="bold">诚聘英才</text>
-    <text x="300" y="340" font-family="Arial, sans-serif" font-size="28" fill="#FFFFFF" text-anchor="middle" opacity="0.8">JOIN US</text>
-    <rect x="200" y="370" width="200" height="4" fill="#4A90C8" rx="2"/>
-    <rect x="50" y="420" width="500" height="80" rx="10" fill="#FFFFFF" opacity="0.95"/>
-    <text x="300" y="475" font-family="Microsoft YaHei, sans-serif" font-size="36" fill="#1E3A5F" text-anchor="middle" font-weight="bold">${formData.jobTitle || '职位名称'}</text>
-    <text x="300" y="560" font-family="Microsoft YaHei, sans-serif" font-size="42" fill="#FFD700" text-anchor="middle" font-weight="bold">${formData.salary || '面议'}</text>
-  </g>
-
-  <g transform="translate(720, 80)">
-    <rect x="0" y="0" width="1100" height="920" rx="20" fill="#FFFFFF"/>
-    <text x="550" y="50" font-family="Arial, sans-serif" font-size="24" fill="#64748B" text-anchor="middle">POSITION DETAILS</text>
-    <text x="550" y="90" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="#1E3A5F" text-anchor="middle" font-weight="bold">职位详情</text>
-    <line x1="50" y1="115" x2="1050" y2="115" stroke="#E2E8F0" stroke-width="2"/>
-
-    <g transform="translate(50, 140)">
-      <rect x="0" y="0" width="480" height="50" rx="8" fill="#F8FAFC"/>
-      <text x="20" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">工作地点</text>
-      <text x="460" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.location || '不限'}</text>
-
-      <rect x="500" y="0" width="480" height="50" rx="8" fill="#F8FAFC"/>
-      <text x="520" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">学历要求</text>
-      <text x="960" y="33" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.education || '不限'}</text>
-
-      <rect x="0" y="65" width="480" height="50" rx="8" fill="#F8FAFC"/>
-      <text x="20" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">经验要求</text>
-      <text x="460" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.experience || '不限'}</text>
-
-      <rect x="500" y="65" width="480" height="50" rx="8" fill="#F8FAFC"/>
-      <text x="520" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#64748B">招聘人数</text>
-      <text x="960" y="98" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#1E293B" text-anchor="end" font-weight="500">${formData.recruitCount || '若干'}人</text>
-    </g>
-
-    <text x="50" y="300" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#1E3A5F" font-weight="bold">岗位职责</text>
-    <rect x="50" y="320" width="1000" height="120" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
-    <text x="70" y="350" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#475569">${generateTspanText(formData.responsibilities || '面议', 70, 22, 60)}</text>
-
-    <text x="50" y="480" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#1E3A5F" font-weight="bold">任职要求</text>
-    <rect x="50" y="500" width="1000" height="140" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
-    <text x="70" y="535" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#475569">${generateTspanText(formData.requirements || '面议', 70, 22, 60)}</text>
-
-    <text x="50" y="680" font-family="Microsoft YaHei, sans-serif" font-size="20" fill="#1E3A5F" font-weight="bold">福利待遇</text>
-    <rect x="50" y="700" width="1000" height="100" rx="10" fill="#EFF6FF"/>
-    <text x="70" y="740" font-family="Microsoft YaHei, sans-serif" font-size="15" fill="#475569">${generateTspanText(formData.welfare || '面议', 70, 22, 60)}</text>
-
-    <rect x="50" y="830" width="1000" height="60" rx="10" fill="#1E3A5F"/>
-    <text x="150" y="868" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#FFFFFF">联系人：${formData.contactName || '---'}</text>
-    <text x="550" y="868" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#FFFFFF" text-anchor="middle">联系电话：${formData.contactPhone || '---'}</text>
-    <text x="950" y="868" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#FFFFFF" text-anchor="end" opacity="0.8">期待您的加入</text>
-  </g>
-</svg>
-`
+  // ORANGE 使用内联 SVG
+  const svgContent = getSvgTemplateByColorScheme(colorScheme)
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
 }
 
@@ -389,13 +345,12 @@ const selectTemplate = (template) => {
 
 // 获取模板预览URL
 const getTemplatePreviewUrl = (template) => {
-  if (!template || !template.templatePath) return ''
-  // 确保路径正确拼接，templatePath格式如: /templates/template-modern.svg
-  const path = template.templatePath.startsWith('/')
-    ? template.templatePath
-    : '/' + template.templatePath
-  // 返回 /files/templates/template-modern.svg
-  return '/files' + path
+  if (!template) return ''
+  // 优先使用 previewPath (PNG预览图)，其次用 templatePath
+  const path = template.previewPath || template.templatePath
+  if (!path) return ''
+  const fullPath = path.startsWith('/') ? path : '/' + path
+  return '/files' + fullPath
 }
 
 // 职位选择变化
@@ -429,16 +384,28 @@ const handleGenerate = async () => {
     ElMessage.warning('请选择海报模板')
     return
   }
-
   generating.value = true
   try {
+    // 获取渲染好的SVG内容
+    let svgContent = ''
+    const colorScheme = selectedTemplate.value.colorScheme
+    if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
+      const templatePath = selectedTemplate.value.templatePath || ''
+      let templateId = 'tech_01'
+      if (templatePath.includes('admin')) {
+        templateId = 'admin_01'
+      } else if (templatePath.includes('tech_02') || colorScheme === 'GREEN') {
+        templateId = 'tech_02'
+      }
+      svgContent = renderTemplate(templateId, formData)
+    }
+
     const res = await generatePoster({
       templateId: selectedTemplate.value.id,
       jobId: formData.jobId,
-      posterName: formData.title || '海报_' + formData.jobTitle
+      posterName: formData.title || '海报_' + formData.jobTitle,
+      svgContent: svgContent
     })
-    // 后端返回的路径如: /posters/poster_xxx.png
-    // 通过代理访问: /files/posters/poster_xxx.png
     const filePath = res.data.filePath || res.data
     resultImage.value = filePath.startsWith('/')
       ? '/files' + filePath
@@ -456,20 +423,10 @@ const handleGenerate = async () => {
 const handleReset = () => {
   formRef.value?.resetFields()
   Object.assign(formData, {
-    jobId: null,
-    title: '',
-    jobTitle: '',
-    company: '',
-    salary: '',
-    location: '',
-    education: '',
-    experience: '',
-    recruitCount: '',
-    responsibilities: '',
-    requirements: '',
-    welfare: '',
-    contactName: '',
-    contactPhone: ''
+    jobId: null, title: '', jobTitle: '', company: '', salary: '',
+    location: '', education: '', experience: '', recruitCount: '',
+    responsibilities: '', requirements: '', welfare: '',
+    contactName: '', contactPhone: ''
   })
 }
 
@@ -508,41 +465,32 @@ onActivated(() => {
     justify-content: space-between;
     align-items: center;
   }
-
   .card-header-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   .template-list {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 15px;
-
     .template-item {
       border: 2px solid #dcdfe6;
       border-radius: 8px;
       padding: 10px;
       cursor: pointer;
       transition: all 0.3s;
-
-      &:hover {
-        border-color: #409eff;
-      }
-
+      &:hover { border-color: #409eff; }
       &.active {
         border-color: #409eff;
         box-shadow: 0 0 10px rgba(64, 158, 255, 0.3);
       }
-
       img {
         width: 100%;
         height: 80px;
         object-fit: cover;
         border-radius: 4px;
       }
-
       .template-name {
         text-align: center;
         margin-top: 8px;
@@ -554,10 +502,8 @@ onActivated(() => {
       }
     }
   }
-
   .preview-card {
     margin-top: 20px;
-
     .preview-area {
       display: flex;
       justify-content: center;
@@ -565,41 +511,23 @@ onActivated(() => {
       background: #f5f7fa;
       border-radius: 8px;
       overflow: auto;
-
       .preview-wrapper {
         width: 100%;
         max-width: 640px;
         background: #fff;
         border-radius: 8px;
         overflow: hidden;
-
-        .preview-svg,
-        .preview-img {
-          width: 100%;
-          display: block;
-        }
+        .preview-svg, .preview-img { width: 100%; display: block; }
       }
     }
   }
-
   .config-form {
-    .divider-title {
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    :deep(.el-form-item__label) {
-      white-space: nowrap;
-    }
+    .divider-title { font-weight: bold; white-space: nowrap; }
+    :deep(.el-form-item__label) { white-space: nowrap; }
   }
 }
-
 .result-container {
   text-align: center;
-
-  .result-image {
-    max-width: 100%;
-    border-radius: 8px;
-  }
+  .result-image { max-width: 100%; border-radius: 8px; }
 }
 </style>
