@@ -3,10 +3,11 @@
     <div class="login-box">
       <!-- Logo和标题 -->
       <div class="login-header">
-        <div class="logo">
+        <div class="logo" v-if="!systemLogo">
           <el-icon :size="40"><Monitor /></el-icon>
         </div>
-        <h2>电视招聘展示系统</h2>
+        <img v-else :src="systemLogo" class="logo-img" />
+        <h2>{{ systemName }}</h2>
         <p class="subtitle">后台管理系统</p>
       </div>
 
@@ -57,7 +58,7 @@
 
       <!-- 底部信息 -->
       <div class="login-footer">
-        <p>© 2024 电视招聘展示系统</p>
+        <p>© 2024 {{ systemName }}</p>
       </div>
     </div>
   </div>
@@ -69,10 +70,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Monitor } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
+import { getSystemConfig } from '@/api/config'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+
+// 系统配置
+const systemName = ref(localStorage.getItem('systemName') || '电视招聘展示系统')
+const systemLogo = ref(localStorage.getItem('systemLogo') || '')
 
 // 表单引用
 const formRef = ref(null)
@@ -130,8 +136,27 @@ const handleLogin = async () => {
   }
 }
 
-// 初始化 - 读取记住的账号密码
+// 获取系统配置
+const fetchSystemConfig = async () => {
+  try {
+    const res = await getSystemConfig()
+    if (res.data) {
+      const data = res.data
+      const name = data.system_name || '电视招聘展示系统'
+      const logo = data.company_logo || ''
+      localStorage.setItem('systemName', name)
+      localStorage.setItem('systemLogo', logo)
+      systemName.value = name
+      systemLogo.value = logo
+    }
+  } catch (error) {
+    console.error('获取系统配置失败:', error)
+  }
+}
+
+// 初始化
 onMounted(() => {
+  // 读取记住的账号密码
   const username = localStorage.getItem('remember_username')
   const password = localStorage.getItem('remember_password')
   if (username && password) {
@@ -139,6 +164,8 @@ onMounted(() => {
     form.password = atob(password)
     rememberMe.value = true
   }
+  // 获取系统配置
+  fetchSystemConfig()
 })
 </script>
 
@@ -173,6 +200,14 @@ onMounted(() => {
     border-radius: 50%;
     color: #fff;
     margin-bottom: 15px;
+  }
+
+  .logo-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+    object-fit: contain;
   }
 
   h2 {

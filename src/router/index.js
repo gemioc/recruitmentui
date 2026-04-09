@@ -163,9 +163,10 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
+  const systemName = localStorage.getItem('systemName') || '电视招聘展示系统'
   document.title = to.meta.title
-    ? `${to.meta.title} - 电视招聘展示系统`
-    : '电视招聘展示系统'
+    ? `${to.meta.title} - ${systemName}`
+    : systemName
 
   // 判断是否需要登录
   const token = getToken()

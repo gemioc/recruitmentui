@@ -3,8 +3,9 @@
     <!-- 侧边栏 -->
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="logo-container" :class="{ collapsed: isCollapse }">
-        <el-icon :size="28"><Monitor /></el-icon>
-        <span v-show="!isCollapse" class="title">招聘展示系统</span>
+        <img v-if="systemLogo" :src="systemLogo" class="logo-img" />
+        <el-icon v-else :size="28"><Monitor /></el-icon>
+        <span v-show="!isCollapse" class="title">{{ systemName }}</span>
       </div>
 
       <el-scrollbar>
@@ -177,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
@@ -191,6 +192,10 @@ const appStore = useAppStore()
 
 // 侧边栏折叠状态
 const isCollapse = computed(() => appStore.isCollapsed)
+
+// 系统名称和Logo
+const systemName = ref(localStorage.getItem('systemName') || '招聘展示系统')
+const systemLogo = ref(localStorage.getItem('systemLogo') || '')
 
 // 当前激活菜单
 const activeMenu = computed(() => route.path)
@@ -285,6 +290,20 @@ const handleChangePassword = async () => {
     console.error('修改密码失败:', error)
   }
 }
+
+// 监听系统名称变化事件
+const updateSystemName = (e) => {
+  systemName.value = localStorage.getItem('systemName') || '招聘展示系统'
+  systemLogo.value = localStorage.getItem('systemLogo') || ''
+}
+
+onMounted(() => {
+  window.addEventListener('systemNameChange', updateSystemName)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('systemNameChange', updateSystemName)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -309,6 +328,12 @@ const handleChangePassword = async () => {
     .title {
       margin-left: 10px;
       white-space: nowrap;
+    }
+
+    .logo-img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
     }
 
     &.collapsed {
