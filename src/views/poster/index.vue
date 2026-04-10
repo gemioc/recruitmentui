@@ -163,7 +163,7 @@ const pushForm = reactive({
 const getPosterUrl = (filePath) => {
   if (!filePath) return ''
   const path = filePath.startsWith('/') ? filePath.slice(1) : filePath
-  return `/api/files/${path}`
+  return `/files/${path}`
 }
 
 // 获取海报列表

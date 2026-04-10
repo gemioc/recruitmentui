@@ -38,7 +38,8 @@
             </template>
             <el-menu-item index="/device/list">设备列表</el-menu-item>
             <el-menu-item index="/device/group">设备分组</el-menu-item>
-            <el-menu-item index="/device/monitor">实时监控</el-menu-item>
+            <!-- 实时监控已隐藏，可通过 /device/monitor URL 访问 -->
+            <!-- <el-menu-item index="/device/monitor">实时监控</el-menu-item> -->
           </el-sub-menu>
 
           <!-- 海报管理 -->
