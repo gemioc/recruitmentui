@@ -1,66 +1,111 @@
 <template>
   <div class="job-container">
-    <!-- 搜索区域 -->
+    <!-- 顶部统计 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon job">
+            <el-icon><Briefcase /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">职位总数</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon recruiting">
+            <el-icon><CircleCheckFilled /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ recruitingCount }}</div>
+            <div class="stat-label">招聘中</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon expired">
+            <el-icon><CircleCloseFilled /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ total - recruitingCount }}</div>
+            <div class="stat-label">已截止</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon today">
+            <el-icon><Calendar /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ todayCount }}</div>
+            <div class="stat-label">今日新增</div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 搜索和操作栏 -->
     <el-card shadow="never" class="search-card">
-      <el-form :model="queryParams" inline>
-        <el-form-item label="职位名称">
+      <div class="search-bar">
+        <div class="search-filters">
           <el-input
             v-model="queryParams.jobName"
-            placeholder="请输入职位名称"
+            placeholder="搜索职位名称..."
+            :prefix-icon="Search"
             clearable
+            style="width: 180px"
             @keyup.enter="handleSearch"
           />
-        </el-form-item>
-        <el-form-item label="工作地点">
           <el-input
             v-model="queryParams.workAddress"
-            placeholder="请输入工作地点"
+            placeholder="搜索工作地点..."
+            :prefix-icon="Location"
             clearable
+            style="width: 180px"
             @keyup.enter="handleSearch"
           />
-        </el-form-item>
-        <el-form-item label="职位状态">
-          <el-select v-model="queryParams.status" placeholder="全部" clearable style="width: 120px">
+          <el-select v-model="queryParams.status" placeholder="全部状态" clearable style="width: 120px">
             <el-option label="招聘中" :value="1" />
             <el-option label="已截止" :value="0" />
           </el-select>
-        </el-form-item>
-        <el-form-item>
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>
             搜索
           </el-button>
           <el-button @click="handleReset">
             <el-icon><Refresh /></el-icon>
-            重置
           </el-button>
-        </el-form-item>
-      </el-form>
+        </div>
+        <div class="search-actions">
+          <el-button type="success" @click="handleImport">
+            <el-icon><Upload /></el-icon>
+            批量导入
+          </el-button>
+          <el-button @click="handleDownloadTemplate">
+            <el-icon><Download /></el-icon>
+            模板下载
+          </el-button>
+          <el-button type="primary" @click="handleAdd">
+            <el-icon><Plus /></el-icon>
+            新增职位
+          </el-button>
+        </div>
+      </div>
     </el-card>
 
-    <!-- 操作区域 -->
-    <el-card shadow="never" class="table-card">
+    <!-- 职位列表 -->
+    <el-card shadow="never" class="table-card" v-loading="loading">
       <template #header>
         <div class="card-header">
           <span>职位列表</span>
-          <div class="button-group">
-            <el-button type="success" @click="handleImport">
-              <el-icon><Upload /></el-icon>
-              批量导入
-            </el-button>
-            <el-button class="template-btn" @click="handleDownloadTemplate">
-              <el-icon><Download /></el-icon>
-              模板下载
-            </el-button>
-            <el-button type="primary" @click="handleAdd">
-              <el-icon><Plus /></el-icon>
-              新增职位
-            </el-button>
-          </div>
         </div>
       </template>
 
-      <el-table :data="jobList" v-loading="loading" stripe>
+      <el-table :data="jobList" stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="jobName" label="职位名称" min-width="150" />
         <el-table-column prop="company" label="公司名称" min-width="150" />
@@ -70,7 +115,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="workAddress" label="工作地点" min-width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-switch
               v-model="row.status"
@@ -80,7 +125,7 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="160">
+        <el-table-column label="创建时间" width="170">
           <template #default="{ row }">
             {{ formatDate(row.createTime) }}
           </template>
@@ -106,18 +151,8 @@
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="800px"
-      :close-on-click-modal="false"
-    >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="100px"
-      >
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px" :close-on-click-modal="false">
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="职位名称" prop="jobName">
@@ -201,28 +236,13 @@
           </el-col>
         </el-row>
         <el-form-item label="岗位职责" prop="responsibilities">
-          <el-input
-            v-model="formData.responsibilities"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入岗位职责"
-          />
+          <el-input v-model="formData.responsibilities" type="textarea" :rows="4" placeholder="请输入岗位职责" />
         </el-form-item>
         <el-form-item label="任职要求" prop="requirements">
-          <el-input
-            v-model="formData.requirements"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入任职要求"
-          />
+          <el-input v-model="formData.requirements" type="textarea" :rows="4" placeholder="请输入任职要求" />
         </el-form-item>
         <el-form-item label="福利待遇" prop="welfare">
-          <el-input
-            v-model="formData.welfare"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入福利待遇，多条用逗号分隔"
-          />
+          <el-input v-model="formData.welfare" type="textarea" :rows="4" placeholder="请输入福利待遇，多条用逗号分隔" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -237,24 +257,15 @@
         <h2 class="title">{{ previewData.jobName }}</h2>
         <div class="company">{{ previewData.company }}</div>
         <div class="info-row">
-          <span class="salary">{{ previewData.salaryMin }}-{{ previewData.salaryMax }}</span>
+          <span class="salary">{{ previewData.salaryMin }}-{{ previewData.salaryMax }}元/月</span>
           <span class="location">{{ previewData.workAddress }}</span>
         </div>
         <el-divider />
-        <div class="detail-item">
-          <label>学历要求：</label>
-          <span>{{ previewData.education }}</span>
-        </div>
-        <div class="detail-item">
-          <label>工作经验：</label>
-          <span>{{ previewData.experience }}</span>
-        </div>
-        <div class="detail-item">
-          <label>招聘人数：</label>
-          <span>{{ previewData.recruitCount }}人</span>
-        </div>
+        <div class="detail-item"><label>学历要求：</label><span>{{ previewData.education }}</span></div>
+        <div class="detail-item"><label>工作经验：</label><span>{{ previewData.experience }}</span></div>
+        <div class="detail-item"><label>招聘人数：</label><span>{{ previewData.recruitCount }}人</span></div>
         <el-divider />
-        <div class="section">
+        <div class="section" v-if="previewData.responsibilities">
           <h3>岗位职责</h3>
           <p>{{ previewData.responsibilities }}</p>
         </div>
@@ -279,37 +290,18 @@
     <!-- 导入弹窗 -->
     <el-dialog v-model="importVisible" title="批量导入职位" width="500px">
       <div class="import-dialog">
-        <el-upload
-          ref="uploadRef"
-          class="upload-demo"
-          drag
-          :auto-upload="false"
-          :limit="1"
-          accept=".xlsx,.xls"
-          :on-change="handleFileChange"
-          :on-remove="handleFileRemove"
-        >
+        <el-upload ref="uploadRef" class="upload-demo" drag :auto-upload="false" :limit="1" accept=".xlsx,.xls" :on-change="handleFileChange" :on-remove="handleFileRemove">
           <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
-          <div class="el-upload__text">
-            将Excel文件拖到此处，或<em>点击上传</em>
-          </div>
+          <div class="el-upload__text">将Excel文件拖到此处，或<em>点击上传</em></div>
           <template #tip>
-            <div class="el-upload__tip">
-              只能上传 xlsx/xls 文件，请先<el-button type="primary" link @click="handleDownloadTemplate">下载模板</el-button>
-            </div>
+            <div class="el-upload__tip">只能上传 xlsx/xls 文件，请先<el-button type="primary" link @click="handleDownloadTemplate">下载模板</el-button></div>
           </template>
         </el-upload>
         <div v-if="importResult" class="import-result">
-          <el-alert
-            :title="`导入完成：成功 ${importResult.success} 条，失败 ${importResult.fail} 条`"
-            :type="importResult.fail > 0 ? 'warning' : 'success'"
-            :closable="false"
-          />
+          <el-alert :title="`导入完成：成功 ${importResult.success} 条，失败 ${importResult.fail} 条`" :type="importResult.fail > 0 ? 'warning' : 'success'" :closable="false" />
           <div v-if="importResult.errors && importResult.errors.length > 0" class="error-list">
             <el-scrollbar height="150px">
-              <p v-for="(error, index) in importResult.errors.slice(0, 10)" :key="index" class="error-item">
-                {{ error }}
-              </p>
+              <p v-for="(error, index) in importResult.errors.slice(0, 10)" :key="index" class="error-item">{{ error }}</p>
             </el-scrollbar>
           </div>
         </div>
@@ -323,12 +315,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onActivated } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Briefcase, CircleCheckFilled, CircleCloseFilled, Calendar, Search, Location, Upload, Download, Plus, User, Medal, Edit, View, Delete, UploadFilled } from '@element-plus/icons-vue'
 import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus, downloadJobTemplate, importJobs } from '@/api/job'
 import { formatDate } from '@/utils/format'
 
-// 查询参数
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
@@ -337,62 +329,47 @@ const queryParams = reactive({
   status: null
 })
 
-// 列表数据
 const jobList = ref([])
 const total = ref(0)
 const loading = ref(false)
 
-// 弹窗
 const dialogVisible = ref(false)
 const submitLoading = ref(false)
 const formRef = ref(null)
-
 const isEdit = ref(false)
 const dialogTitle = computed(() => isEdit.value ? '编辑职位' : '新增职位')
 
-// 表单数据
 const formData = reactive({
-  id: null,
-  jobName: '',
-  company: '',
-  salaryMin: 0,
-  salaryMax: 0,
-  workAddress: '',
-  education: '不限',
-  experience: '不限',
-  recruitCount: 1,
-  responsibilities: '',
-  requirements: '',
-  welfare: '',
-  contactName: '',
-  contactPhone: '',
-  contactEmail: ''
+  id: null, jobName: '', company: '', salaryMin: 0, salaryMax: 0, workAddress: '',
+  education: '不限', experience: '不限', recruitCount: 1,
+  responsibilities: '', requirements: '', welfare: '',
+  contactName: '', contactPhone: '', contactEmail: ''
 })
 
-// 表单验证规则
 const formRules = {
   jobName: [{ required: true, message: '请输入职位名称', trigger: 'blur' }],
   company: [{ required: true, message: '请输入公司名称', trigger: 'blur' }],
   workAddress: [{ required: true, message: '请输入工作地点', trigger: 'blur' }],
   contactName: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
-  contactPhone: [
-    { required: true, message: '请输入联系电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
-  ]
+  contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }, { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }]
 }
 
-// 预览
 const previewVisible = ref(false)
 const previewData = ref(null)
 
-// 导入
 const importVisible = ref(false)
 const importLoading = ref(false)
 const uploadRef = ref(null)
 const importFile = ref(null)
 const importResult = ref(null)
 
-// 获取职位列表
+// 统计数据
+const recruitingCount = computed(() => jobList.value.filter(j => j.status === 1).length)
+const todayCount = computed(() => {
+  const today = new Date().toDateString()
+  return jobList.value.filter(j => j.createTime && new Date(j.createTime).toDateString() === today).length
+})
+
 const fetchJobList = async () => {
   loading.value = true
   try {
@@ -406,327 +383,105 @@ const fetchJobList = async () => {
   }
 }
 
-// 搜索
-const handleSearch = () => {
-  queryParams.pageNum = 1
-  fetchJobList()
-}
+const handleSearch = () => { queryParams.pageNum = 1; fetchJobList() }
+const handleReset = () => { queryParams.jobName = ''; queryParams.workAddress = ''; queryParams.status = null; handleSearch() }
 
-// 重置
-const handleReset = () => {
-  queryParams.jobName = ''
-  queryParams.workAddress = ''
-  queryParams.status = null
-  handleSearch()
-}
+const handleAdd = () => { isEdit.value = false; resetForm(); dialogVisible.value = true }
 
-// 新增
-const handleAdd = () => {
-  isEdit.value = false
-  resetForm()
-  dialogVisible.value = true
-}
-
-// 编辑
 const handleEdit = async (row) => {
   isEdit.value = true
-  try {
-    const res = await getJobDetail(row.id)
-    Object.assign(formData, res.data)
-    dialogVisible.value = true
-  } catch (error) {
-    console.error('获取职位详情失败:', error)
-  }
+  try { const res = await getJobDetail(row.id); Object.assign(formData, res.data); dialogVisible.value = true } catch (error) { console.error('获取详情失败:', error) }
 }
 
-// 重置表单
 const resetForm = () => {
-  Object.assign(formData, {
-    id: null,
-    jobName: '',
-    company: '',
-    salaryMin: 0,
-    salaryMax: 0,
-    workAddress: '',
-    education: '不限',
-    experience: '不限',
-    recruitCount: 1,
-    responsibilities: '',
-    requirements: '',
-    welfare: '',
-    contactName: '',
-    contactPhone: '',
-    contactEmail: ''
-  })
+  Object.assign(formData, { id: null, jobName: '', company: '', salaryMin: 0, salaryMax: 0, workAddress: '', education: '不限', experience: '不限', recruitCount: 1, responsibilities: '', requirements: '', welfare: '', contactName: '', contactPhone: '', contactEmail: '' })
   formRef.value?.resetFields()
 }
 
-// 提交
 const handleSubmit = async () => {
   await formRef.value.validate()
   submitLoading.value = true
   try {
-    if (isEdit.value) {
-      await updateJob(formData.id, formData)
-      ElMessage.success('修改成功')
-    } else {
-      await createJob(formData)
-      ElMessage.success('新增成功')
-    }
+    if (isEdit.value) { await updateJob(formData.id, formData); ElMessage.success('修改成功') }
+    else { await createJob(formData); ElMessage.success('新增成功') }
     dialogVisible.value = false
     fetchJobList()
-  } catch (error) {
-    console.error('保存失败:', error)
-  } finally {
-    submitLoading.value = false
-  }
+  } catch (error) { console.error('保存失败:', error) } finally { submitLoading.value = false }
 }
 
-// 状态切换
 const handleStatusChange = async (row) => {
-  try {
-    await updateJobStatus(row.id, row.status)
-    ElMessage.success('状态更新成功')
-  } catch (error) {
-    row.status = row.status === 1 ? 0 : 1
-    console.error('状态更新失败:', error)
-  }
+  try { await updateJobStatus(row.id, row.status); ElMessage.success(row.status === 1 ? '已开启招聘' : '已截止招聘') } catch (error) { row.status = row.status === 1 ? 0 : 1; console.error('状态更新失败:', error) }
 }
 
-// 预览
-const handlePreview = async (row) => {
-  try {
-    const res = await getJobDetail(row.id)
-    previewData.value = res.data
-    previewVisible.value = true
-  } catch (error) {
-    console.error('获取职位详情失败:', error)
-  }
-}
+const handlePreview = async (row) => { try { const res = await getJobDetail(row.id); previewData.value = res.data; previewVisible.value = true } catch (error) { console.error('获取详情失败:', error) } }
 
-// 删除
 const handleDelete = async (row) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该职位吗？', '提示', {
-      type: 'warning'
-    })
-    await deleteJob(row.id)
-    ElMessage.success('删除成功')
-    fetchJobList()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除失败:', error)
-    }
-  }
+  try { await ElMessageBox.confirm(`确定要删除职位【${row.jobName}】吗？`, '提示', { type: 'warning' }); await deleteJob(row.id); ElMessage.success('删除成功'); fetchJobList() } catch (error) { if (error !== 'cancel') console.error('删除失败:', error) }
 }
 
-// 下载导入模板
 const handleDownloadTemplate = async () => {
-  try {
-    const res = await downloadJobTemplate()
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = '职位导入模板.xlsx'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-    ElMessage.success('模板下载成功')
-  } catch (error) {
-    console.error('模板下载失败:', error)
-    ElMessage.error('模板下载失败')
-  }
+  try { const res = await downloadJobTemplate(); const url = window.URL.createObjectURL(new Blob([res.data])); const link = document.createElement('a'); link.href = url; link.download = '职位导入模板.xlsx'; document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url); ElMessage.success('模板下载成功') } catch (error) { console.error('模板下载失败:', error); ElMessage.error('模板下载失败') }
 }
 
-// 打开导入弹窗
-const handleImport = () => {
-  importFile.value = null
-  importResult.value = null
-  uploadRef.value?.clearFiles()
-  importVisible.value = true
-}
+const handleImport = () => { importFile.value = null; importResult.value = null; uploadRef.value?.clearFiles(); importVisible.value = true }
+const handleFileChange = (file) => { importFile.value = file.raw }
+const handleFileRemove = () => { importFile.value = null }
 
-// 文件选择
-const handleFileChange = (file) => {
-  importFile.value = file.raw
-}
-
-// 文件移除
-const handleFileRemove = () => {
-  importFile.value = null
-}
-
-// 确认导入
 const handleConfirmImport = async () => {
-  if (!importFile.value) {
-    ElMessage.warning('请选择要导入的文件')
-    return
-  }
+  if (!importFile.value) { ElMessage.warning('请选择要导入的文件'); return }
   importLoading.value = true
   try {
     const res = await importJobs(importFile.value)
     if (res.code === 200) {
       importResult.value = res.data
       const { success, fail } = res.data
-      if (fail > 0) {
-        ElMessage.warning(`导入完成：成功 ${success} 条，失败 ${fail} 条`)
-      } else {
-        ElMessage.success(`导入成功：${success} 条`)
-        // 成功后关闭弹窗并清除文件
-        importVisible.value = false
-        importFile.value = null
-        uploadRef.value?.clearFiles()
-        fetchJobList()
-      }
-    } else {
-      ElMessage.error(res.message || '导入失败')
-    }
-  } catch (error) {
-    console.error('导入失败:', error)
-    ElMessage.error('导入失败')
-  } finally {
-    importLoading.value = false
-  }
+      if (fail > 0) ElMessage.warning(`导入完成：成功 ${success} 条，失败 ${fail} 条`)
+      else { ElMessage.success(`导入成功：${success} 条`); importVisible.value = false; importFile.value = null; uploadRef.value?.clearFiles(); fetchJobList() }
+    } else { ElMessage.error(res.message || '导入失败') }
+  } catch (error) { console.error('导入失败:', error); ElMessage.error('导入失败') } finally { importLoading.value = false }
 }
 
-// 初始化
-fetchJobList()
-
-// 页面激活时刷新数据
-onActivated(() => {
-  fetchJobList()
-})
+onMounted(() => { fetchJobList() })
+onActivated(() => fetchJobList())
 </script>
 
 <style lang="scss" scoped>
 .job-container {
+  .stats-row {
+    margin-bottom: 20px;
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px; padding: 20px;
+      display: flex; align-items: center; color: #fff;
+      .stat-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 16px; background: rgba(255,255,255,0.2); }
+      .stat-info { .stat-value { font-size: 28px; font-weight: 700; } .stat-label { font-size: 13px; opacity: 0.85; margin-top: 4px; } }
+    }
+    .stat-card:nth-child(2) { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .stat-card:nth-child(3) { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .stat-card:nth-child(4) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  }
   .search-card {
-    margin-bottom: 20px;
-
-    :deep(.el-card__body) {
-      padding-bottom: 0;
-    }
+    border-radius: 12px; margin-bottom: 20px;
+    .search-bar { display: flex; justify-content: space-between; align-items: center; }
+    .search-filters { display: flex; gap: 12px; align-items: center; }
+    .search-actions { display: flex; gap: 10px; }
   }
-
   .table-card {
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .el-pagination {
-      margin-top: 20px;
-      justify-content: flex-end;
-    }
+    border-radius: 12px;
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .el-pagination { margin-top: 20px; display: flex; justify-content: flex-end; }
   }
 }
-
 .job-preview {
-  .title {
-    font-size: 22px;
-    margin-bottom: 10px;
-  }
-
-  .company {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 10px;
-  }
-
-  .info-row {
-    .salary {
-      font-size: 18px;
-      color: #f56c6c;
-      margin-right: 20px;
-    }
-
-    .location {
-      color: #666;
-    }
-  }
-
-  .detail-item {
-    margin-bottom: 10px;
-
-    label {
-      color: #666;
-    }
-  }
-
-  .section {
-    margin-bottom: 20px;
-
-    h3 {
-      font-size: 16px;
-      margin-bottom: 10px;
-      padding-left: 10px;
-      border-left: 3px solid #409eff;
-    }
-
-    p {
-      color: #666;
-      line-height: 1.8;
-      white-space: pre-wrap;
-    }
-  }
-
-  .contact {
-    h3 {
-      font-size: 16px;
-      margin-bottom: 10px;
-    }
-
-    p {
-      color: #666;
-      margin-bottom: 5px;
-
-      label {
-        color: #333;
-      }
-    }
-  }
+  .title { font-size: 22px; margin-bottom: 10px; }
+  .company { font-size: 16px; color: #666; margin-bottom: 10px; }
+  .info-row { .salary { font-size: 18px; color: #f56c6c; margin-right: 20px; } .location { color: #666; } }
+  .detail-item { margin-bottom: 10px; label { color: #666; } }
+  .section { margin-bottom: 20px; h3 { font-size: 16px; margin-bottom: 10px; padding-left: 10px; border-left: 3px solid #409eff; } p { color: #666; line-height: 1.8; white-space: pre-wrap; } }
+  .contact { h3 { font-size: 16px; margin-bottom: 10px; } p { color: #666; margin-bottom: 5px; label { color: #333; } } }
 }
-
 .import-dialog {
-  .upload-demo {
-    text-align: center;
-  }
-
-  .import-result {
-    margin-top: 20px;
-
-    .error-list {
-      margin-top: 10px;
-      padding: 10px;
-      background: #fef0f0;
-      border-radius: 4px;
-
-      .error-item {
-        color: #f56c6c;
-        font-size: 12px;
-        margin: 5px 0;
-      }
-    }
-  }
-}
-
-.card-header {
-  .button-group {
-    display: flex;
-    gap: 10px;
-  }
-}
-
-.template-btn {
-  background: #6c757d;
-  border: none;
-  color: #fff;
-
-  &:hover {
-    background: #5a6268;
-    color: #fff;
-  }
+  .upload-demo { text-align: center; }
+  .import-result { margin-top: 20px; .error-list { margin-top: 10px; padding: 10px; background: #fef0f0; border-radius: 4px; .error-item { color: #f56c6c; font-size: 12px; margin: 5px 0; } } }
 }
 </style>

@@ -19,7 +19,7 @@
             :on-success="handleLogoSuccess"
             accept="image/*"
           >
-            <img v-if="basicConfig.logo" :src="basicConfig.logo" class="logo-image" />
+            <img v-if="basicConfig.logo" :src="getFileUrl(basicConfig.logo)" class="logo-image" />
             <el-icon v-else class="logo-uploader-icon"><Plus /></el-icon>
           </el-upload>
         </el-form-item>
@@ -36,6 +36,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getToken } from '@/utils/auth'
 import { getSystemConfig, updateSystemConfig } from '@/api/config'
+import { getFileUrl } from '@/utils/file'
 
 const uploadUrl = '/api/config/logo'
 const uploadHeaders = computed(() => ({
@@ -80,7 +81,7 @@ const updateFavicon = (logoUrl) => {
   if (logoUrl) {
     const favicon = document.getElementById('favicon-link')
     if (favicon) {
-      favicon.href = logoUrl
+      favicon.href = getFileUrl(logoUrl)
     }
   }
 }

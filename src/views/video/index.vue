@@ -1,27 +1,80 @@
 <template>
   <div class="video-container">
-    <!-- 搜索区域 -->
+    <!-- 顶部统计 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon video">
+            <el-icon><VideoPlay /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">视频总数</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon video">
+            <el-icon><Folder /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatFileSize(totalSize) }}</div>
+            <div class="stat-label">总大小</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon video">
+            <el-icon><Top /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ topCount }}</div>
+            <div class="stat-label">置顶视频</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon video">
+            <el-icon><Calendar /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ todayCount }}</div>
+            <div class="stat-label">今日上传</div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 搜索和操作栏 -->
     <el-card shadow="never" class="search-card">
-      <el-form :model="queryParams" inline>
-        <el-form-item label="视频名称">
+      <div class="search-bar">
+        <div class="search-filters">
           <el-input
             v-model="queryParams.videoName"
-            placeholder="请输入视频名称"
+            placeholder="搜索视频名称..."
+            :prefix-icon="Search"
             clearable
+            style="width: 220px"
             @keyup.enter="handleSearch"
           />
-        </el-form-item>
-        <el-form-item>
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>
             搜索
           </el-button>
           <el-button @click="handleReset">
             <el-icon><Refresh /></el-icon>
-            重置
           </el-button>
-        </el-form-item>
-      </el-form>
+        </div>
+        <div class="search-actions">
+          <el-button type="primary" @click="handleAdd">
+            <el-icon><Plus /></el-icon>
+            上传视频
+          </el-button>
+        </div>
+      </div>
     </el-card>
 
     <!-- 列表区域 -->
@@ -29,10 +82,6 @@
       <template #header>
         <div class="card-header">
           <span>视频列表</span>
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
-            上传视频
-          </el-button>
         </div>
       </template>
 
@@ -72,8 +121,8 @@
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
+        :page-sizes="[12, 24, 48, 96]"
+        layout="total, sizes, prev, pager, next"
         @size-change="fetchVideoList"
         @current-change="fetchVideoList"
       />
@@ -166,25 +215,31 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { VideoPlay, Folder, Top, Calendar, Search, Plus, Refresh } from '@element-plus/icons-vue'
 import { getToken } from '@/utils/auth'
 import { getVideoList, createVideo, deleteVideo, setVideoTop } from '@/api/video'
 import { getDeviceList } from '@/api/device'
 import { pushMultiple } from '@/api/push'
 import { formatDate, formatFileSize } from '@/utils/format'
 
-// 查询参数
+// 统计数据
+const totalSize = computed(() => videoList.value.reduce((sum, v) => sum + (v.fileSize || 0), 0))
+const topCount = computed(() => videoList.value.filter(v => v.isTop === 1).length)
+const todayCount = computed(() => {
+  const today = new Date().toDateString()
+  return videoList.value.filter(v => v.createTime && new Date(v.createTime).toDateString() === today).length
+})
+
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 24,
   videoName: ''
 })
 
-// 列表数据
 const videoList = ref([])
 const total = ref(0)
 const loading = ref(false)
 
-// 上传
 const uploadDialogVisible = ref(false)
 const submitLoading = ref(false)
 const formRef = ref(null)
@@ -205,20 +260,16 @@ const formRules = {
   videoName: [{ required: true, message: '请输入视频名称', trigger: 'blur' }]
 }
 
-// 播放
 const playDialogVisible = ref(false)
 const playVideo = ref(null)
 const videoPlayUrl = computed(() => {
   if (!playVideo.value || !playVideo.value.filePath) return ''
-  // filePath is like "/videos/2026/03/xxx.mp4", need to prefix with /api/files
-  // Remove leading slash to avoid double slash
   const path = playVideo.value.filePath.startsWith('/')
     ? playVideo.value.filePath.slice(1)
     : playVideo.value.filePath
   return `/api/files/${path}`
 })
 
-// 推送
 const pushDialogVisible = ref(false)
 const pushLoading = ref(false)
 const deviceList = ref([])
@@ -227,7 +278,6 @@ const pushForm = reactive({
   deviceIds: []
 })
 
-// 获取视频列表
 const fetchVideoList = async () => {
   loading.value = true
   try {
@@ -241,7 +291,6 @@ const fetchVideoList = async () => {
   }
 }
 
-// 获取设备列表
 const fetchDeviceList = async () => {
   try {
     const res = await getDeviceList({ pageNum: 1, pageSize: 100 })
@@ -251,33 +300,28 @@ const fetchDeviceList = async () => {
   }
 }
 
-// 搜索
 const handleSearch = () => {
   queryParams.pageNum = 1
   fetchVideoList()
 }
 
-// 重置
 const handleReset = () => {
   queryParams.videoName = ''
   handleSearch()
 }
 
-// 新增
 const handleAdd = () => {
   Object.assign(formData, {
     videoName: '',
     filePath: '',
     fileSize: 0
   })
-  // 清空上传组件的文件列表
   if (uploadRef.value) {
     uploadRef.value.clearFiles()
   }
   uploadDialogVisible.value = true
 }
 
-// 上传前检查
 const beforeUpload = (file) => {
   const isVideo = file.type.startsWith('video/')
   const isLt500M = file.size / 1024 / 1024 < 500
@@ -293,7 +337,6 @@ const beforeUpload = (file) => {
   return true
 }
 
-// 上传成功
 const handleUploadSuccess = (response) => {
   if (response.code === 200) {
     formData.filePath = response.data.filePath
@@ -307,12 +350,10 @@ const handleUploadSuccess = (response) => {
   }
 }
 
-// 上传失败
 const handleUploadError = () => {
   ElMessage.error('上传失败，请重试')
 }
 
-// 提交
 const handleSubmit = async () => {
   await formRef.value.validate()
   if (!formData.filePath) {
@@ -333,7 +374,6 @@ const handleSubmit = async () => {
   }
 }
 
-// 置顶切换
 const handleTopChange = async (row) => {
   try {
     await setVideoTop(row.id, row.isTop)
@@ -344,13 +384,11 @@ const handleTopChange = async (row) => {
   }
 }
 
-// 播放
 const handlePlay = (row) => {
   playVideo.value = row
   playDialogVisible.value = true
 }
 
-// 推送
 const handlePush = async (row) => {
   await fetchDeviceList()
   pushForm.videoId = row.id
@@ -358,7 +396,6 @@ const handlePush = async (row) => {
   pushDialogVisible.value = true
 }
 
-// 确认推送
 const confirmPush = async () => {
   if (pushForm.deviceIds.length === 0) {
     ElMessage.warning('请选择要推送的设备')
@@ -380,7 +417,6 @@ const confirmPush = async () => {
   }
 }
 
-// 删除
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm('确定要删除该视频吗？', '提示', {
@@ -396,12 +432,10 @@ const handleDelete = async (row) => {
   }
 }
 
-// 初始化
 onMounted(() => {
   fetchVideoList()
 })
 
-// 页面激活时刷新数据
 onActivated(() => {
   fetchVideoList()
 })
@@ -409,25 +443,40 @@ onActivated(() => {
 
 <style lang="scss" scoped>
 .video-container {
-  .search-card {
+  .stats-row {
     margin-bottom: 20px;
-
-    :deep(.el-card__body) {
-      padding-bottom: 0;
-    }
-  }
-
-  .table-card {
-    .card-header {
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 20px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      color: #fff;
+      .stat-icon {
+        width: 56px; height: 56px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; margin-right: 16px;
+        background: rgba(255,255,255,0.2);
+      }
+      .stat-info {
+        .stat-value { font-size: 28px; font-weight: 700; }
+        .stat-label { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+      }
     }
-
-    .el-pagination {
-      margin-top: 20px;
-      justify-content: flex-end;
-    }
+    .stat-card:nth-child(2) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-card:nth-child(3) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-card:nth-child(4) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  }
+  .search-card {
+    border-radius: 12px; margin-bottom: 20px;
+    .search-bar { display: flex; justify-content: space-between; align-items: center; }
+    .search-filters { display: flex; gap: 12px; align-items: center; }
+    .search-actions { display: flex; gap: 10px; }
+  }
+  .table-card {
+    border-radius: 12px;
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .el-pagination { margin-top: 20px; display: flex; justify-content: flex-end; }
   }
 }
 

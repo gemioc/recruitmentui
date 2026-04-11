@@ -55,22 +55,22 @@
         </div>
       </template>
 
-      <el-table :data="logList" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="userName" label="操作人" width="100" />
-        <el-table-column prop="operationType" label="操作类型" width="100">
+      <el-table :data="logList" v-loading="loading" stripe fit>
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="userName" label="操作人" width="120" />
+        <el-table-column prop="operationType" label="类型" width="120">
           <template #default="{ row }">
             <el-tag :type="getOperationTypeTag(row.operationType)" size="small">
               {{ getOperationTypeLabel(row.operationType) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="operationDesc" label="操作描述" min-width="200" />
+        <el-table-column prop="operationDesc" label="操作描述" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="requestUrl" label="请求地址" min-width="180" show-overflow-tooltip />
         <el-table-column prop="ipAddress" label="IP地址" width="130" />
-        <el-table-column prop="executionTime" label="耗时(ms)" width="100" />
-        <el-table-column label="操作时间" width="180">
+        <el-table-column prop="executionTime" label="耗时" width="100">
           <template #default="{ row }">
-            {{ formatDateTime(row.operationTime) }}
+            {{ row.executionTime }}ms
           </template>
         </el-table-column>
         <el-table-column label="操作" width="80" fixed="right">

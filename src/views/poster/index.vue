@@ -1,42 +1,91 @@
 <template>
   <div class="poster-container">
-    <!-- 搜索区域 -->
+    <!-- 顶部统计 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon poster">
+            <el-icon><Picture /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">海报总数</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon poster">
+            <el-icon><Briefcase /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ jobCount }}</div>
+            <div class="stat-label">关联职位</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon poster">
+            <el-icon><Document /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ templateCount }}</div>
+            <div class="stat-label">使用模板</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon poster">
+            <el-icon><Clock /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ todayCount }}</div>
+            <div class="stat-label">今日新增</div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 搜索和操作栏 -->
     <el-card shadow="never" class="search-card">
-      <el-form :model="queryParams" inline>
-        <el-form-item label="海报名称">
+      <div class="search-bar">
+        <div class="search-filters">
           <el-input
             v-model="queryParams.posterName"
-            placeholder="请输入海报名称"
+            placeholder="搜索海报名称..."
+            :prefix-icon="Search"
             clearable
+            style="width: 220px"
             @keyup.enter="handleSearch"
           />
-        </el-form-item>
-        <el-form-item>
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>
             搜索
           </el-button>
           <el-button @click="handleReset">
             <el-icon><Refresh /></el-icon>
-            重置
           </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <!-- 列表区域 -->
-    <el-card shadow="never" class="table-card">
-      <template #header>
-        <div class="card-header">
-          <span>海报列表</span>
+        </div>
+        <div class="search-actions">
           <el-button type="primary" @click="router.push('/poster/generate')">
             <el-icon><Plus /></el-icon>
             生成海报
           </el-button>
         </div>
+      </div>
+    </el-card>
+
+    <!-- 海报列表 -->
+    <el-card shadow="never" class="table-card" v-loading="loading">
+      <template #header>
+        <div class="card-header">
+          <span>海报列表</span>
+        </div>
       </template>
 
-      <el-table :data="posterList" v-loading="loading" stripe>
+      <el-table :data="posterList" stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="posterName" label="海报名称" min-width="150" />
         <el-table-column label="预览图" width="120">
@@ -76,8 +125,8 @@
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
+        :page-sizes="[12, 24, 48, 96]"
+        layout="total, sizes, prev, pager, next"
         @size-change="fetchPosterList"
         @current-change="fetchPosterList"
       />
@@ -122,34 +171,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onActivated } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Picture } from '@element-plus/icons-vue'
+import { Picture, Search, Plus, Refresh, Briefcase, Document, Clock } from '@element-plus/icons-vue'
 import { getPosterList, getPosterDetail, deletePoster } from '@/api/poster'
 import { getDeviceList } from '@/api/device'
 import { pushMultiple } from '@/api/push'
 import { formatDate } from '@/utils/format'
+import { getFileUrl } from '@/utils/file'
 
 const router = useRouter()
 
-// 查询参数
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 24,
   posterName: ''
 })
 
-// 列表数据
 const posterList = ref([])
 const total = ref(0)
 const loading = ref(false)
 
-// 预览
 const previewVisible = ref(false)
 const previewData = ref(null)
 
-// 推送
 const pushDialogVisible = ref(false)
 const pushLoading = ref(false)
 const deviceList = ref([])
@@ -159,14 +205,25 @@ const pushForm = reactive({
   duration: 30
 })
 
-// 获取海报URL
+const jobCount = computed(() => {
+  const jobs = new Set(posterList.value.filter(p => p.jobName).map(p => p.jobName))
+  return jobs.size
+})
+
+const templateCount = computed(() => {
+  const templates = new Set(posterList.value.filter(p => p.templateName).map(p => p.templateName))
+  return templates.size || 1
+})
+
+const todayCount = computed(() => {
+  const today = new Date().toDateString()
+  return posterList.value.filter(p => p.createTime && new Date(p.createTime).toDateString() === today).length
+})
+
 const getPosterUrl = (filePath) => {
-  if (!filePath) return ''
-  const path = filePath.startsWith('/') ? filePath.slice(1) : filePath
-  return `/files/${path}`
+  return getFileUrl(filePath)
 }
 
-// 获取海报列表
 const fetchPosterList = async () => {
   loading.value = true
   try {
@@ -180,7 +237,6 @@ const fetchPosterList = async () => {
   }
 }
 
-// 获取设备列表
 const fetchDeviceList = async () => {
   try {
     const res = await getDeviceList({ pageNum: 1, pageSize: 100 })
@@ -190,19 +246,9 @@ const fetchDeviceList = async () => {
   }
 }
 
-// 搜索
-const handleSearch = () => {
-  queryParams.pageNum = 1
-  fetchPosterList()
-}
+const handleSearch = () => { queryParams.pageNum = 1; fetchPosterList() }
+const handleReset = () => { queryParams.posterName = ''; handleSearch() }
 
-// 重置
-const handleReset = () => {
-  queryParams.posterName = ''
-  handleSearch()
-}
-
-// 预览
 const handlePreview = async (row) => {
   try {
     const res = await getPosterDetail(row.id)
@@ -213,7 +259,6 @@ const handlePreview = async (row) => {
   }
 }
 
-// 推送
 const handlePush = async (row) => {
   await fetchDeviceList()
   pushForm.posterId = row.id
@@ -222,7 +267,6 @@ const handlePush = async (row) => {
   pushDialogVisible.value = true
 }
 
-// 确认推送
 const confirmPush = async () => {
   if (pushForm.deviceIds.length === 0) {
     ElMessage.warning('请选择要推送的设备')
@@ -245,7 +289,6 @@ const confirmPush = async () => {
   }
 }
 
-// 下载
 const handleDownload = (row) => {
   if (!row.filePath) {
     ElMessage.warning('海报文件不存在')
@@ -262,79 +305,72 @@ const handleDownload = (row) => {
   ElMessage.success('开始下载')
 }
 
-// 删除
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该海报吗？', '提示', {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm('确定要删除该海报吗？', '提示', { type: 'warning' })
     await deletePoster(row.id)
     ElMessage.success('删除成功')
     fetchPosterList()
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除失败:', error)
-    }
+    if (error !== 'cancel') console.error('删除失败:', error)
   }
 }
 
-// 初始化
-onMounted(() => {
-  fetchPosterList()
-})
-
-// 页面激活时刷新数据
-onActivated(() => {
-  fetchPosterList()
-})
+onMounted(() => { fetchPosterList() })
+onActivated(() => fetchPosterList())
 </script>
 
 <style lang="scss" scoped>
 .poster-container {
-  .search-card {
+  .stats-row {
     margin-bottom: 20px;
-
-    :deep(.el-card__body) {
-      padding-bottom: 0;
-    }
-  }
-
-  .table-card {
-    .card-header {
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 20px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-    }
-
-    .poster-thumb {
-      width: 80px;
-      height: 60px;
-      cursor: pointer;
-
-      .image-placeholder {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f5f7fa;
-        color: #909399;
+      color: #fff;
+      .stat-icon {
+        width: 56px; height: 56px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; margin-right: 16px;
+        background: rgba(255,255,255,0.2);
+      }
+      .stat-info {
+        .stat-value { font-size: 28px; font-weight: 700; }
+        .stat-label { font-size: 13px; opacity: 0.85; margin-top: 4px; }
       }
     }
-
-    .el-pagination {
-      margin-top: 20px;
-      justify-content: flex-end;
+    .stat-card:nth-child(2) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-card:nth-child(3) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-card:nth-child(4) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  }
+  .search-card {
+    border-radius: 12px; margin-bottom: 20px;
+    .search-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      .search-filters { display: flex; gap: 12px; align-items: center; }
+      .search-actions { display: flex; gap: 10px; }
     }
   }
+  .table-card {
+    border-radius: 12px;
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .poster-thumb {
+      width: 80px; height: 60px; cursor: pointer;
+      .image-placeholder {
+        width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+        background: #f5f7fa; color: #909399;
+      }
+    }
+    .el-pagination { margin-top: 20px; display: flex; justify-content: flex-end; }
+  }
 }
-
 .preview-container {
   text-align: center;
-
-  .preview-image {
-    max-width: 100%;
-    max-height: 600px;
-  }
+  .preview-image { max-width: 100%; max-height: 600px; }
 }
 </style>

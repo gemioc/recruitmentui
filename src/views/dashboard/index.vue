@@ -159,7 +159,6 @@ import { getPushRecords } from '@/api/push'
 
 const router = useRouter()
 
-// 统计数据
 const statistics = ref({
   deviceCount: 0,
   onlineCount: 0,
@@ -172,10 +171,8 @@ const statistics = ref({
   todayPushCount: 0
 })
 
-// 最近推送记录
 const recentPushRecords = ref([])
 
-// 图表
 const pushChartRef = ref(null)
 const deviceChartRef = ref(null)
 let pushChart = null
@@ -183,10 +180,8 @@ let deviceChart = null
 
 const pushChartType = ref('week')
 
-// 定时刷新
 let refreshTimer = null
 
-// 获取统计数据
 const fetchStatistics = async () => {
   try {
     const [pushRes, deviceRes, contentRes] = await Promise.all([
@@ -195,7 +190,6 @@ const fetchStatistics = async () => {
       getContentStatistics()
     ])
 
-    // 更新统计卡片数据（不受筛选影响）
     if (deviceRes.data) {
       statistics.value.deviceCount = deviceRes.data.total || 0
       statistics.value.onlineCount = deviceRes.data.online || 0
@@ -203,7 +197,6 @@ const fetchStatistics = async () => {
     }
 
     if (pushRes.data) {
-      // 推送次数使用全量数据
       const allPushRes = await getPushStatistics({ type: 'all' })
       if (allPushRes.data) {
         statistics.value.pushCount = allPushRes.data.total || 0
@@ -219,14 +212,12 @@ const fetchStatistics = async () => {
       statistics.value.todayPosterCount = contentRes.data.todayPosterCount || 0
     }
 
-    // 更新设备图表
     updateDeviceChart(deviceRes.data?.statusDistribution || [])
   } catch (error) {
     console.error('获取统计数据失败:', error)
   }
 }
 
-// 获取最近推送记录
 const fetchRecentPushRecords = async () => {
   try {
     const res = await getPushRecords({ page: 1, size: 5 })
@@ -236,7 +227,6 @@ const fetchRecentPushRecords = async () => {
   }
 }
 
-// 初始化推送趋势图表
 const initPushChart = () => {
   if (!pushChartRef.value) return
   pushChart = echarts.init(pushChartRef.value)
@@ -284,7 +274,6 @@ const initPushChart = () => {
   })
 }
 
-// 初始化设备状态图表
 const initDeviceChart = () => {
   if (!deviceChartRef.value) return
   deviceChart = echarts.init(deviceChartRef.value)
@@ -326,7 +315,6 @@ const initDeviceChart = () => {
   })
 }
 
-// 更新推送趋势图表
 const updatePushChart = (data) => {
   if (!pushChart) return
   const hasData = data && data.length > 0 && data.some(item => (item.posterCount || 0) > 0 || (item.videoCount || 0) > 0)
@@ -344,7 +332,6 @@ const updatePushChart = (data) => {
   pushChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
 }
 
-// 更新设备状态图表
 const updateDeviceChart = (data) => {
   if (!deviceChart) return
   const hasData = data && data.length > 0 && data.some(item => (item.count || 0) > 0)
@@ -359,13 +346,11 @@ const updateDeviceChart = (data) => {
   deviceChartRef.value.nextElementSibling.style.display = hasData ? 'none' : 'flex'
 }
 
-// 窗口大小变化时重新调整图表
 const handleResize = () => {
   pushChart?.resize()
   deviceChart?.resize()
 }
 
-// 监听图表类型变化
 watch(pushChartType, () => {
   fetchStatistics()
 })
@@ -375,7 +360,6 @@ onMounted(() => {
   initDeviceChart()
   fetchStatistics()
   fetchRecentPushRecords()
-  // 每30秒刷新一次统计数据（卡片数据）
   refreshTimer = setInterval(() => {
     fetchStatistics()
   }, 30000)
@@ -391,7 +375,6 @@ onUnmounted(() => {
   deviceChart?.dispose()
 })
 
-// 页面激活时刷新数据
 onActivated(() => {
   fetchStatistics()
   fetchRecentPushRecords()

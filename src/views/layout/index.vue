@@ -3,7 +3,7 @@
     <!-- 侧边栏 -->
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="logo-container" :class="{ collapsed: isCollapse }">
-        <img v-if="systemLogo" :src="systemLogo" class="logo-img" />
+        <img v-if="systemLogo" :src="getFileUrl(systemLogo)" class="logo-img" />
         <el-icon v-else :size="28"><Monitor /></el-icon>
         <span v-show="!isCollapse" class="title">{{ systemName }}</span>
       </div>
@@ -185,6 +185,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 import { updatePassword } from '@/api/auth'
+import { getFileUrl } from '@/utils/file'
 
 const router = useRouter()
 const route = useRoute()

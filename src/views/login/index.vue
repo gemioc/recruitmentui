@@ -6,7 +6,7 @@
         <div class="logo" v-if="!systemLogo">
           <el-icon :size="40"><Monitor /></el-icon>
         </div>
-        <img v-else :src="systemLogo" class="logo-img" />
+        <img v-else :src="getFileUrl(systemLogo)" class="logo-img" />
         <h2>{{ systemName }}</h2>
         <p class="subtitle">后台管理系统</p>
       </div>
@@ -71,6 +71,7 @@ import { ElMessage } from 'element-plus'
 import { User, Lock, Monitor } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { getSystemConfig } from '@/api/config'
+import { getFileUrl } from '@/utils/file'
 
 const router = useRouter()
 const route = useRoute()

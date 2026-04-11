@@ -1,12 +1,61 @@
 <template>
   <div class="push-container">
-    <el-row :gutter="20" align="stretch">
-      <!-- 左侧：内容列表 -->
-      <el-col :span="10" class="equal-height-col">
-        <el-card shadow="never" class="equal-height-card">
+    <!-- 顶部统计卡片 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon poster">
+            <el-icon><Picture /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ totalPosters }}</div>
+            <div class="stat-label">海报总数</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon video">
+            <el-icon><VideoCamera /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ totalVideos }}</div>
+            <div class="stat-label">视频总数</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon device">
+            <el-icon><Monitor /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ totalDevices }}</div>
+            <div class="stat-label">设备总数</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="stat-card">
+          <div class="stat-icon online">
+            <el-icon><CircleCheckFilled /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ totalOnline }}</div>
+            <div class="stat-label">在线设备</div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <!-- 主内容区 -->
+    <el-row :gutter="20" class="main-content">
+      <!-- 左侧：内容选择 -->
+      <el-col :span="10" class="content-panel">
+        <el-card shadow="never" class="content-card">
           <template #header>
-            <div class="card-header">
-              <span>内容列表</span>
+            <div class="panel-header">
+              <span class="panel-title">选择内容</span>
               <el-radio-group v-model="contentType" size="small">
                 <el-radio-button label="poster">海报</el-radio-button>
                 <el-radio-button label="video">视频</el-radio-button>
@@ -17,23 +66,11 @@
           <!-- 搜索栏 -->
           <div class="search-bar">
             <el-input
-              v-if="contentType === 'poster'"
-              v-model="contentQuery.posterName"
-              placeholder="搜索海报名称"
+              v-model="contentQuery.keyword"
+              :placeholder="contentType === 'poster' ? '搜索海报名称' : '搜索视频名称'"
               clearable
               size="small"
-              style="width: 200px"
-              @keyup.enter="handleContentSearch"
-            >
-              <template #prefix><el-icon><Search /></el-icon></template>
-            </el-input>
-            <el-input
-              v-else
-              v-model="contentQuery.videoName"
-              placeholder="搜索视频名称"
-              clearable
-              size="small"
-              style="width: 200px"
+              style="width: 180px"
               @keyup.enter="handleContentSearch"
             >
               <template #prefix><el-icon><Search /></el-icon></template>
@@ -41,52 +78,82 @@
             <el-button type="primary" size="small" @click="handleContentSearch">搜索</el-button>
           </div>
 
-          <el-table
-            :data="contentList"
-            v-loading="contentLoading"
-            stripe
-            highlight-current-row
-            @selection-change="handleContentSelection"
-            class="content-table"
-          >
-            <el-table-column type="selection" width="55" />
-            <el-table-column label="名称" min-width="120">
-              <template #default="{ row }">
-                <div class="content-name-cell">
-                  <el-icon v-if="contentType === 'poster'" class="content-icon"><Picture /></el-icon>
-                  <el-icon v-else class="content-icon"><VideoCamera /></el-icon>
-                  <span>{{ row.posterName || row.videoName }}</span>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="预览" width="80">
-              <template #default="{ row }">
-                <el-button type="primary" link size="small" @click="handlePreview(row)">
-                  查看
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <!-- 内容列表 -->
+          <div class="content-list" v-loading="contentLoading">
+            <el-empty v-if="contentList.length === 0" description="暂无内容" :image-size="60" />
 
-          <el-pagination
-            v-model:current-page="contentQuery.pageNum"
-            v-model:page-size="contentQuery.pageSize"
-            :total="contentTotal"
-            :page-sizes="[10, 20, 50]"
-            layout="total, prev, pager, next"
-            small
-            @size-change="fetchContentList"
-            @current-change="fetchContentList"
-          />
+            <div
+              v-for="item in contentList"
+              :key="item.id"
+              class="content-item"
+              :class="{ selected: selectedContentIds.includes(item.id) }"
+              @click="toggleContentSelection(item)"
+            >
+              <div class="content-checkbox" @click.stop="() => toggleContentSelection(item)">
+                <el-checkbox
+                  :model-value="selectedContentIds.includes(item.id)"
+                />
+              </div>
+              <div class="content-thumb">
+                <el-image
+                  v-if="contentType === 'poster'"
+                  :src="getFileUrl(item.filePath)"
+                  fit="cover"
+                  class="thumb-image"
+                >
+                  <template #error>
+                    <div class="thumb-placeholder"><el-icon><Picture /></el-icon></div>
+                  </template>
+                </el-image>
+                <video
+                  v-else
+                  :src="getFileUrl(item.filePath)"
+                  class="thumb-video"
+                />
+              </div>
+              <div class="content-info">
+                <div class="content-name">{{ contentType === 'poster' ? item.posterName : item.videoName }}</div>
+                <div class="content-meta">
+                  <el-tag v-if="contentType === 'poster'" size="small" type="info">海报</el-tag>
+                  <el-tag v-else size="small" type="warning">视频</el-tag>
+                  <span class="content-time">{{ formatDate(item.createTime) }}</span>
+                </div>
+              </div>
+              <div class="content-actions">
+                <el-button type="primary" link size="small" @click.stop="handlePreview(item)">
+                  <el-icon><View /></el-icon>
+                </el-button>
+              </div>
+            </div>
+
+            <el-pagination
+              v-model:current-page="contentQuery.pageNum"
+              v-model:page-size="contentQuery.pageSize"
+              :total="contentTotal"
+              :page-sizes="[10, 20, 50]"
+              layout="total, prev, pager, next"
+              small
+              @size-change="fetchContentList"
+              @current-change="fetchContentList"
+            />
+          </div>
         </el-card>
       </el-col>
 
-      <!-- 右侧：目标选择 -->
-      <el-col :span="14" class="equal-height-col">
-        <el-card shadow="never" class="equal-height-card">
+      <!-- 右侧：推送目标 -->
+      <el-col :span="14" class="target-panel">
+        <el-card shadow="never" class="target-card">
           <template #header>
-            <div class="card-header">
-              <span>推送目标</span>
+            <div class="panel-header">
+              <div class="panel-title">
+                选择推送目标
+                <el-tag v-if="pushMode === 'group'" size="small" type="success">
+                  {{ selectedGroupIds.length }} 个分组
+                </el-tag>
+                <el-tag v-else size="small" type="warning">
+                  {{ selectedDeviceIds.length }} 台设备
+                </el-tag>
+              </div>
               <el-radio-group v-model="pushMode" size="small">
                 <el-radio-button label="group">按分组</el-radio-button>
                 <el-radio-button label="device">按设备</el-radio-button>
@@ -97,26 +164,40 @@
           <!-- 分组模式 -->
           <div v-if="pushMode === 'group'" class="group-mode">
             <div class="group-list">
-              <el-checkbox-group v-model="selectedGroupIds">
-                <div
-                  v-for="group in onlineGroupList"
-                  :key="group.id"
-                  class="group-item"
-                  :class="{ selected: selectedGroupIds.includes(group.id) }"
-                >
-                  <el-checkbox :label="group.id">
-                    <div class="group-info">
-                      <span class="group-name">{{ group.groupName }}</span>
-                      <span class="group-count">
-                        <el-tag type="success" size="small">{{ group.onlineCount }} 在线</el-tag>
-                        <el-tag type="info" size="small">{{ group.deviceCount }} 台</el-tag>
-                      </span>
-                    </div>
-                  </el-checkbox>
+              <div
+                v-for="group in groupList"
+                :key="group.id"
+                class="group-item"
+                :class="{ selected: selectedGroupIds.includes(group.id), 'no-online': group.onlineCount === 0 }"
+                @click="toggleGroupSelection(group)"
+              >
+                <div class="group-icon">
+                  <el-icon><Folder /></el-icon>
                 </div>
-              </el-checkbox-group>
+                <div class="group-info">
+                  <div class="group-name">{{ group.groupName }}</div>
+                  <div class="group-meta">
+                    <span class="device-count">
+                      <el-icon><Monitor /></el-icon>
+                      {{ group.deviceCount || 0 }}台
+                    </span>
+                    <span class="online-count" :class="{ 'has-online': group.onlineCount > 0 }">
+                      <span class="online-dot"></span>
+                      {{ group.onlineCount || 0 }}在线
+                    </span>
+                  </div>
+                </div>
+                <div class="group-checkbox" @click.stop="() => toggleGroupSelection(group)">
+                  <el-checkbox
+                    :model-value="selectedGroupIds.includes(group.id)"
+                  />
+                </div>
+              </div>
+
+              <el-empty v-if="groupList.length === 0" description="暂无分组" :image-size="60" />
             </div>
-            <div class="group-summary" v-if="selectedGroupIds.length > 0">
+
+            <div class="selection-summary" v-if="selectedGroupIds.length > 0">
               <el-icon><InfoFilled /></el-icon>
               已选择 <b>{{ selectedGroupIds.length }}</b> 个分组，共
               <b>{{ totalDeviceCount }}</b> 台设备
@@ -133,7 +214,6 @@
                 clearable
                 size="small"
                 style="width: 150px"
-                @keyup.enter="handleDeviceSearch"
               >
                 <template #prefix><el-icon><Search /></el-icon></template>
               </el-input>
@@ -143,7 +223,6 @@
                 clearable
                 size="small"
                 style="width: 150px"
-                @change="handleDeviceSearch"
               >
                 <el-option
                   v-for="group in groupList"
@@ -152,37 +231,44 @@
                   :value="group.id"
                 />
               </el-select>
-              <el-button type="primary" size="small" @click="handleDeviceSearch">
+              <el-button type="primary" size="small" @click="fetchDeviceList">
                 <el-icon><Search /></el-icon>
                 搜索
               </el-button>
             </div>
 
-            <el-table
-              ref="deviceTableRef"
-              :data="deviceList"
-              v-loading="deviceLoading"
-              stripe
-              max-height="300"
-              @selection-change="handleDeviceSelection"
-            >
-              <el-table-column type="selection" width="55" />
-              <el-table-column prop="deviceName" label="设备名称" min-width="120" />
-              <el-table-column prop="groupName" label="分组" width="100">
-                <template #default="{ row }">
-                  <el-tag v-if="row.groupName" size="small" type="info">{{ row.groupName }}</el-tag>
-                  <span v-else class="text-muted">-</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="location" label="安装位置" min-width="120" />
-              <el-table-column label="状态" width="80">
-                <template #default="{ row }">
-                  <el-tag :type="row.onlineStatus === 1 ? 'success' : 'danger'" size="small">
-                    {{ row.onlineStatus === 1 ? '在线' : '离线' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
+            <div class="device-grid">
+              <div
+                v-for="device in deviceList"
+                :key="device.id"
+                class="device-item"
+                :class="{ selected: selectedDeviceIds.includes(device.id), offline: device.onlineStatus !== 1 }"
+                @click="toggleDeviceSelection(device)"
+              >
+                <div class="device-status-bar" :class="device.onlineStatus === 1 ? 'online' : 'offline'"></div>
+                <div class="device-content">
+                  <div class="device-header">
+                    <div class="device-avatar">
+                      <el-icon><Monitor /></el-icon>
+                    </div>
+                    <div class="device-checkbox" @click.stop="() => toggleDeviceSelection(device)">
+                      <el-checkbox
+                        :model-value="selectedDeviceIds.includes(device.id)"
+                      />
+                    </div>
+                  </div>
+                  <div class="device-info">
+                    <div class="device-name">{{ device.deviceName || '未命名设备' }}</div>
+                    <div class="device-location">
+                      <el-icon><Location /></el-icon>
+                      {{ device.location || '未设置位置' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <el-empty v-if="deviceList.length === 0" description="暂无设备" :image-size="60" />
+            </div>
 
             <el-pagination
               v-model:current-page="deviceQuery.pageNum"
@@ -213,7 +299,8 @@
           <span class="unit">秒</span>
         </el-form-item>
         <el-form-item label="循环播放">
-          <el-switch v-model="pushConfig.loop" size="default" />        </el-form-item>
+          <el-switch v-model="pushConfig.loop" size="default" />
+        </el-form-item>
         <el-form-item label="音量" v-if="contentType === 'video'">
           <el-slider v-model="pushConfig.volume" :min="0" :max="100" size="default" style="width: 100px" />
           <span class="unit">{{ pushConfig.volume }}%</span>
@@ -223,6 +310,7 @@
             type="primary"
             :disabled="!canPush || pushCooldown"
             :loading="pushing"
+            size="default"
             @click="handlePush"
           >
             <el-icon v-if="!pushCooldown"><Promotion /></el-icon>
@@ -230,20 +318,6 @@
           </el-button>
         </el-form-item>
       </el-form>
-
-      <div class="selection-info">
-        <el-tag type="info" size="small">
-          已选择 {{ selectedContents.length }} 个{{ contentType === 'poster' ? '海报' : '视频' }}
-        </el-tag>
-        <el-tag :type="pushMode === 'group' ? 'success' : 'warning'" size="small">
-          <template v-if="pushMode === 'group'">
-            {{ selectedGroupIds.length }} 个分组（共 {{ totalDeviceCount }} 台设备）
-          </template>
-          <template v-else>
-            {{ selectedDevices.length }} 台设备
-          </template>
-        </el-tag>
-      </div>
     </el-card>
 
     <!-- 预览弹窗 -->
@@ -267,24 +341,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onActivated } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Picture,
   VideoCamera,
   Promotion,
   InfoFilled,
-  Search
+  Search,
+  View,
+  Folder,
+  Monitor,
+  CircleCheckFilled,
+  Location
 } from '@element-plus/icons-vue'
 import { getPosterList } from '@/api/poster'
 import { getVideoList } from '@/api/video'
 import { getDeviceList, getDeviceGroups } from '@/api/device'
 import { pushMultiple, getPushGroups } from '@/api/push'
+import { getFileUrl as getFileUrlUtil } from '@/utils/file'
+import { formatDate } from '@/utils/format'
 
 // 内容类型
 const contentType = ref('poster')
 
-// 推送模式：group-按分组 device-按设备
+// 推送模式
 const pushMode = ref('group')
 
 // 内容列表
@@ -293,9 +374,8 @@ const contentTotal = ref(0)
 const contentLoading = ref(false)
 const contentQuery = reactive({
   pageNum: 1,
-  pageSize: 10,
-  posterName: '',
-  videoName: ''
+  pageSize: 20,
+  keyword: ''
 })
 
 // 分组列表
@@ -304,18 +384,17 @@ const groupList = ref([])
 // 设备列表
 const deviceList = ref([])
 const deviceTotal = ref(0)
-const deviceLoading = ref(false)
 const deviceQuery = reactive({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   groupId: null,
   deviceName: '',
-  onlineStatus: 1 // 只显示在线设备
+  onlineStatus: 1
 })
 
 // 选中项
-const selectedContents = ref([])
-const selectedDevices = ref([])
+const selectedContentIds = ref([])
+const selectedDeviceIds = ref([])
 const selectedGroupIds = ref([])
 
 // 推送配置
@@ -335,56 +414,49 @@ const previewUrl = ref('')
 const previewTitle = ref('')
 const previewType = ref('poster')
 
-// 表格ref
-const deviceTableRef = ref(null)
+// 统计数据
+const totalPosters = ref(0)
+const totalVideos = ref(0)
+const totalDevices = computed(() => {
+  return groupList.value.reduce((sum, g) => sum + (g.deviceCount || 0), 0)
+})
+const totalOnline = computed(() => {
+  return groupList.value.reduce((sum, g) => sum + (g.onlineCount || 0), 0)
+})
 
-// 计算属性：选中分组的设备统计
+// 计算属性
 const totalDeviceCount = computed(() => {
-  if (pushMode.value !== 'group') return 0
   return groupList.value
     .filter(g => selectedGroupIds.value.includes(g.id))
     .reduce((sum, g) => sum + (g.deviceCount || 0), 0)
 })
 
 const totalOnlineCount = computed(() => {
-  if (pushMode.value !== 'group') return 0
   return groupList.value
     .filter(g => selectedGroupIds.value.includes(g.id))
     .reduce((sum, g) => sum + (g.onlineCount || 0), 0)
 })
 
-// 只显示有在线设备的分组
-const onlineGroupList = computed(() => {
-  return groupList.value.filter(g => g.onlineCount > 0)
-})
-
-// 是否可以推送
 const canPush = computed(() => {
-  if (selectedContents.value.length === 0) return false
+  if (selectedContentIds.value.length === 0) return false
   if (pushMode.value === 'group') {
     return selectedGroupIds.value.length > 0
   } else {
-    return selectedDevices.value.length > 0
+    return selectedDeviceIds.value.length > 0
   }
 })
 
 // 获取文件URL
 const getFileUrl = (filePath) => {
   if (!filePath) return ''
-  const path = filePath.startsWith('/') ? filePath.slice(1) : filePath
-  return `/api/files/${path}`
+  return getFileUrlUtil(filePath)
 }
 
 // 预览
 const handlePreview = (row) => {
-  previewTitle.value = row.posterName || row.videoName
-  if (contentType.value === 'poster') {
-    previewType.value = 'poster'
-    previewUrl.value = getFileUrl(row.filePath)
-  } else {
-    previewType.value = 'video'
-    previewUrl.value = getFileUrl(row.filePath)
-  }
+  previewTitle.value = contentType.value === 'poster' ? row.posterName : row.videoName
+  previewType.value = contentType.value
+  previewUrl.value = getFileUrl(row.filePath)
   previewVisible.value = true
 }
 
@@ -394,23 +466,24 @@ const handleContentSearch = () => {
   fetchContentList()
 }
 
-// 设备搜索
-const handleDeviceSearch = () => {
-  deviceQuery.pageNum = 1
-  fetchDeviceList()
-}
-
 // 获取内容列表
 const fetchContentList = async () => {
   contentLoading.value = true
   try {
     const api = contentType.value === 'poster' ? getPosterList : getVideoList
     const params = contentType.value === 'poster'
-      ? { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, posterName: contentQuery.posterName }
-      : { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, videoName: contentQuery.videoName }
+      ? { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, posterName: contentQuery.keyword }
+      : { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, videoName: contentQuery.keyword }
     const res = await api(params)
     contentList.value = res.data.records || []
     contentTotal.value = res.data.total || 0
+
+    // 更新统计
+    if (contentType.value === 'poster') {
+      totalPosters.value = contentTotal.value
+    } else {
+      totalVideos.value = contentTotal.value
+    }
   } catch (error) {
     console.error('获取内容列表失败:', error)
   } finally {
@@ -418,7 +491,7 @@ const fetchContentList = async () => {
   }
 }
 
-// 获取分组列表（带设备统计）
+// 获取分组列表
 const fetchGroupList = async () => {
   try {
     const res = await getPushGroups()
@@ -430,38 +503,51 @@ const fetchGroupList = async () => {
 
 // 获取设备列表
 const fetchDeviceList = async () => {
-  deviceLoading.value = true
   try {
     const res = await getDeviceList(deviceQuery)
     deviceList.value = res.data.records || []
     deviceTotal.value = res.data.total || 0
   } catch (error) {
     console.error('获取设备列表失败:', error)
-  } finally {
-    deviceLoading.value = false
   }
 }
 
-// 内容选择变化
-const handleContentSelection = (selection) => {
-  selectedContents.value = selection
+// 内容选择
+const toggleContentSelection = (item) => {
+  const id = item.id
+  const index = selectedContentIds.value.indexOf(id)
+  if (index > -1) {
+    selectedContentIds.value.splice(index, 1)
+  } else {
+    selectedContentIds.value.push(id)
+  }
 }
 
-// 设备选择变化
-const handleDeviceSelection = (selection) => {
-  selectedDevices.value = selection
+// 分组选择
+const toggleGroupSelection = (group) => {
+  const id = group.id
+  const index = selectedGroupIds.value.indexOf(id)
+  if (index > -1) {
+    selectedGroupIds.value.splice(index, 1)
+  } else {
+    selectedGroupIds.value.push(id)
+  }
 }
 
-// 全选设备
-const handleSelectAllDevices = () => {
-  if (deviceTableRef.value) {
-    deviceTableRef.value.toggleAllSelection()
+// 设备选择
+const toggleDeviceSelection = (device) => {
+  const id = device.id
+  const index = selectedDeviceIds.value.indexOf(id)
+  if (index > -1) {
+    selectedDeviceIds.value.splice(index, 1)
+  } else {
+    selectedDeviceIds.value.push(id)
   }
 }
 
 // 推送
 const handlePush = async () => {
-  if (selectedContents.value.length === 0) {
+  if (selectedContentIds.value.length === 0) {
     ElMessage.warning('请选择要推送的内容')
     return
   }
@@ -484,16 +570,16 @@ const handlePush = async () => {
       targetIds = [...new Set(targetIds)]
     }
   } else {
-    if (selectedDevices.value.length === 0) {
+    if (selectedDeviceIds.value.length === 0) {
       ElMessage.warning('请选择要推送的设备')
       return
     }
-    targetIds = selectedDevices.value.map(item => item.id)
+    targetIds = selectedDeviceIds.value
   }
 
   const confirmText = pushMode.value === 'group'
-    ? `确定要将内容推送到 ${selectedGroupIds.value.length} 个分组（共 ${totalDeviceCount.value} 台设备）吗？`
-    : `确定要将内容推送到 ${targetIds.length} 台设备吗？`
+    ? `确定要将 ${selectedContentIds.value.length} 个内容推送到 ${selectedGroupIds.value.length} 个分组（共 ${totalDeviceCount.value} 台设备）吗？`
+    : `确定要将 ${selectedContentIds.value.length} 个内容推送到 ${targetIds.length} 台设备吗？`
 
   try {
     await ElMessageBox.confirm(confirmText, '确认推送', { type: 'info' })
@@ -505,7 +591,7 @@ const handlePush = async () => {
   try {
     await pushMultiple({
       contentType: contentType.value,
-      contentIds: selectedContents.value.map(item => item.id),
+      contentIds: selectedContentIds.value,
       targetIds: targetIds.length > 0 ? targetIds : undefined,
       groupId: groupId,
       playRule: pushConfig
@@ -525,196 +611,516 @@ const handlePush = async () => {
 
 // 监听内容类型变化
 watch(contentType, () => {
-  selectedContents.value = []
-  contentQuery.posterName = ''
-  contentQuery.videoName = ''
+  selectedContentIds.value = []
+  contentQuery.keyword = ''
   contentQuery.pageNum = 1
   fetchContentList()
 })
 
-// 初始化
 onMounted(() => {
   fetchContentList()
   fetchGroupList()
   fetchDeviceList()
 })
-
-// 页面激活时刷新数据
-onActivated(() => {
-  fetchContentList()
-})
 </script>
 
 <style lang="scss" scoped>
 .push-container {
-  // 等高布局
-  :deep(.el-row) {
+  padding: 0;
+}
+
+// 统计卡片行
+.stats-row {
+  margin-bottom: 16px;
+
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 16px 20px;
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    color: #fff;
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-right: 14px;
+      background: rgba(255, 255, 255, 0.2);
+
+      &.poster { background: rgba(255, 255, 255, 0.2); }
+      &.video { background: rgba(255, 255, 255, 0.2); }
+      &.device { background: rgba(255, 255, 255, 0.2); }
+      &.online { background: rgba(16, 185, 129, 0.5); }
+    }
+
+    .stat-info {
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .stat-label {
+        font-size: 12px;
+        opacity: 0.85;
+        margin-top: 2px;
+      }
+    }
   }
+}
 
-  .equal-height-col {
-    display: flex;
-    flex-direction: column;
-  }
+// 主内容区
+.main-content {
+  margin-bottom: 0;
 
-  .equal-height-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-
-    :deep(.el-card__body) {
-      flex: 1;
+  .content-panel {
+    .content-card {
+      border-radius: 12px;
+      height: calc(100vh - 240px);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+
+      :deep(.el-card__header) {
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        flex-shrink: 0;
+      }
+
+      :deep(.el-card__body) {
+        padding: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
     }
   }
 
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+  .target-panel {
+    .target-card {
+      border-radius: 12px;
+      height: calc(100vh - 240px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
 
-  // 搜索栏
-  .search-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
+      :deep(.el-card__header) {
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        flex-shrink: 0;
+      }
 
-  .el-pagination {
-    margin-top: 15px;
-    justify-content: flex-end;
+      :deep(.el-card__body) {
+        padding: 12px 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow-y: auto;
+      }
+    }
   }
+}
 
-  // 内容名称单元格
-  .content-name-cell {
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+}
 
-    .content-icon {
-      color: #909399;
-      font-size: 16px;
+// 搜索栏
+.search-bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+// 内容列表
+.content-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  .content-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+    border: 1px solid transparent;
+
+    &:hover {
+      background: #f5f7fa;
+    }
+
+    &.selected {
+      background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+      border-color: #667eea40;
+    }
+
+    .content-checkbox {
+      margin-right: 12px;
+    }
+
+    .content-thumb {
+      width: 60px;
+      height: 45px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-right: 12px;
+      background: #f5f7fa;
+
+      .thumb-image,
+      .thumb-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .thumb-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #909399;
+      }
+    }
+
+    .content-info {
+      flex: 1;
+      min-width: 0;
+
+      .content-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #303133;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .content-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #909399;
+
+        .content-time {
+          color: #c0c4cc;
+        }
+      }
+    }
+
+    .content-actions {
+      margin-left: 8px;
+    }
+  }
+}
+
+// 分组模式
+.group-mode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  .group-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .group-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+
+    &:hover {
+      background: #f5f7fa;
+    }
+
+    &.selected {
+      background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+      border: 1px solid #667eea40;
+    }
+
+    &.no-online {
+      opacity: 0.6;
+    }
+
+    .group-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+      margin-right: 12px;
+    }
+
+    .group-info {
+      flex: 1;
+      min-width: 0;
+
+      .group-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #303133;
+        margin-bottom: 4px;
+      }
+
+      .group-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        color: #909399;
+
+        .device-count {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .online-count {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          .online-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #909399;
+          }
+
+          &.has-online .online-dot {
+            background: #10b981;
+          }
+        }
+      }
+    }
+
+    .group-checkbox {
+      margin-left: 12px;
     }
   }
 
-  // 分组模式样式
-  .group-mode {
-    flex: 1;
+  .selection-summary {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #f5f7fa;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-size: 14px;
+    color: #606266;
+    flex-shrink: 0;
 
-    .group-list {
-      flex: 1;
-      overflow-y: auto;
-      max-height: 300px;
+    .el-icon {
+      color: #409eff;
     }
 
-    .group-item {
+    b {
+      color: #409eff;
+    }
+  }
+}
+
+// 设备模式
+.device-mode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  .device-toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+
+  .device-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    overflow-y: auto;
+    min-height: 0;
+    align-content: flex-start;
+  }
+
+  .device-item {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #ebeef5;
+    overflow: hidden;
+    transition: all 0.3s;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    }
+
+    &.selected {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+    }
+
+    &.offline {
+      opacity: 0.75;
+    }
+
+    .device-status-bar {
+      height: 3px;
+
+      &.online {
+        background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+      }
+
+      &.offline {
+        background: linear-gradient(90deg, #909399 0%, #dcdfe6 100%);
+      }
+    }
+
+    .device-content {
       padding: 12px;
-      margin-bottom: 8px;
-      border: 1px solid #e4e7ed;
-      border-radius: 8px;
-      transition: all 0.3s;
-      cursor: pointer;
 
-      &:hover {
-        border-color: #409eff;
-        background: #f5f7fa;
-      }
-
-      &.selected {
-        border-color: #409eff;
-        background: #ecf5ff;
-      }
-
-      :deep(.el-checkbox) {
-        width: 100%;
-
-        .el-checkbox__label {
-          flex: 1;
-        }
-      }
-
-      .group-info {
+      .device-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        width: 100%;
+        margin-bottom: 8px;
 
-        .group-name {
-          font-weight: 500;
-        }
-
-        .group-count {
+        .device-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           display: flex;
-          gap: 8px;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 16px;
+        }
+      }
+
+      .device-info {
+        .device-name {
+          font-size: 13px;
+          font-weight: 500;
+          color: #303133;
+          margin-bottom: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .device-location {
+          font-size: 11px;
+          color: #c0c4cc;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
     }
+  }
+}
 
-    .group-summary {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px;
-      background: #f5f7fa;
-      border-radius: 8px;
-      margin-top: 12px;
-      font-size: 14px;
-      color: #606266;
+// 推送配置卡片
+.push-config-card {
+  margin-top: 12px;
+  border-radius: 12px;
 
-      .el-icon {
-        color: #409eff;
-      }
-
-      b {
-        color: #409eff;
-      }
-    }
+  :deep(.el-card__header) {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
   }
 
-  // 设备模式样式
-  .device-mode {
-    flex: 1;
+  :deep(.el-card__body) {
+    padding: 12px 20px;
+  }
+
+  .unit {
+    margin-left: 10px;
+    color: #909399;
+    font-size: 13px;
+  }
+}
+
+.preview-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+// 分页器 - 统一在底部
+.content-list {
+  :deep(.el-pagination) {
+    margin-top: auto;
+    padding-top: 12px;
     display: flex;
-    flex-direction: column;
-
-    .device-toolbar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
+    justify-content: flex-end;
+    flex-shrink: 0;
   }
+}
 
-  .push-config-card {
-    margin-top: 20px;
-
-    .unit {
-      margin-left: 10px;
-      color: #909399;
-      font-size: 13px;
-    }
-
-    .selection-info {
-      margin-top: 15px;
-      display: flex;
-      gap: 12px;
-    }
-  }
-
-  .preview-content {
+.group-mode {
+  :deep(.el-pagination) {
+    margin-top: auto;
+    padding-top: 12px;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
+    justify-content: flex-end;
+    flex-shrink: 0;
   }
+}
 
-  .text-muted {
-    color: #c0c4cc;
+.device-mode {
+  :deep(.el-pagination) {
+    margin-top: auto;
+    padding-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
   }
 }
 </style>
