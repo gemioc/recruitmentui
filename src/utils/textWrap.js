@@ -73,7 +73,7 @@ function splitTextToLines(text, containerWidth, fontSize) {
       // 预估宽度 = 当前行宽度 + 字符宽度 + 边距
       const estimatedWidth = currentWidth + charWidth + 2
 
-      if (estimatedWidth > containerWidth && currentLine.length() > 0) {
+      if (estimatedWidth > containerWidth && currentLine.length > 0) {
         // 当前行已满，切换到新行
         lines.push(currentLine)
         currentLine = char
