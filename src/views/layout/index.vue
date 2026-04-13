@@ -58,6 +58,12 @@
             <span>视频管理</span>
           </el-menu-item>
 
+          <!-- 图片管理 -->
+          <el-menu-item index="/image">
+            <el-icon><PictureFilled /></el-icon>
+            <span>图片管理</span>
+          </el-menu-item>
+
           <!-- 内容推送 -->
           <el-sub-menu index="/push">
             <template #title>

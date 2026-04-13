@@ -55,11 +55,6 @@
           </el-button>
         </el-form-item>
       </el-form>
-
-      <!-- 底部信息 -->
-      <div class="login-footer">
-        <p>© 2024 {{ systemName }}</p>
-      </div>
     </div>
   </div>
 </template>
@@ -230,12 +225,5 @@ onMounted(() => {
     height: 44px;
     font-size: 16px;
   }
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: 30px;
-  color: #909399;
-  font-size: 12px;
 }
 </style>

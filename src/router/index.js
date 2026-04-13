@@ -95,6 +95,12 @@ export const asyncRoutes = [
         meta: { title: '视频管理', icon: 'VideoCamera' }
       },
       {
+        path: 'image',
+        name: 'Image',
+        component: () => import('@/views/image/index.vue'),
+        meta: { title: '图片管理', icon: 'PictureFilled' }
+      },
+      {
         path: 'push',
         name: 'Push',
         redirect: '/push/content',

@@ -59,6 +59,7 @@
               <el-radio-group v-model="contentType" size="small">
                 <el-radio-button label="poster">海报</el-radio-button>
                 <el-radio-button label="video">视频</el-radio-button>
+                <el-radio-button label="image">图片</el-radio-button>
               </el-radio-group>
             </div>
           </template>
@@ -112,10 +113,13 @@
                 />
               </div>
               <div class="content-info">
-                <div class="content-name">{{ contentType === 'poster' ? item.posterName : item.videoName }}</div>
+                <div class="content-name">
+                  {{ contentType === 'poster' ? item.posterName : (contentType === 'video' ? item.videoName : item.imageName) }}
+                </div>
                 <div class="content-meta">
                   <el-tag v-if="contentType === 'poster'" size="small" type="info">海报</el-tag>
-                  <el-tag v-else size="small" type="warning">视频</el-tag>
+                  <el-tag v-else-if="contentType === 'video'" size="small" type="warning">视频</el-tag>
+                  <el-tag v-else size="small" type="success">图片</el-tag>
                   <span class="content-time">{{ formatDate(item.createTime) }}</span>
                 </div>
               </div>
@@ -324,7 +328,7 @@
     <el-dialog v-model="previewVisible" :title="previewTitle" width="800px">
       <div class="preview-content">
         <el-image
-          v-if="previewType === 'poster'"
+          v-if="previewType === 'poster' || previewType === 'image'"
           :src="previewUrl"
           fit="contain"
           style="max-width: 100%; max-height: 500px;"
@@ -357,6 +361,7 @@ import {
 } from '@element-plus/icons-vue'
 import { getPosterList } from '@/api/poster'
 import { getVideoList } from '@/api/video'
+import { getImageList } from '@/api/image'
 import { getDeviceList, getDeviceGroups } from '@/api/device'
 import { pushMultiple, getPushGroups } from '@/api/push'
 import { getFileUrl as getFileUrlUtil } from '@/utils/file'
@@ -470,10 +475,17 @@ const handleContentSearch = () => {
 const fetchContentList = async () => {
   contentLoading.value = true
   try {
-    const api = contentType.value === 'poster' ? getPosterList : getVideoList
-    const params = contentType.value === 'poster'
-      ? { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, posterName: contentQuery.keyword }
-      : { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, videoName: contentQuery.keyword }
+    let api, params
+    if (contentType.value === 'poster') {
+      api = getPosterList
+      params = { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, posterName: contentQuery.keyword }
+    } else if (contentType.value === 'video') {
+      api = getVideoList
+      params = { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, videoName: contentQuery.keyword }
+    } else {
+      api = getImageList
+      params = { pageNum: contentQuery.pageNum, pageSize: contentQuery.pageSize, imageName: contentQuery.keyword }
+    }
     const res = await api(params)
     contentList.value = res.data.records || []
     contentTotal.value = res.data.total || 0
@@ -481,7 +493,7 @@ const fetchContentList = async () => {
     // 更新统计
     if (contentType.value === 'poster') {
       totalPosters.value = contentTotal.value
-    } else {
+    } else if (contentType.value === 'video') {
       totalVideos.value = contentTotal.value
     }
   } catch (error) {

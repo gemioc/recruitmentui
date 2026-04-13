@@ -235,11 +235,8 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="岗位职责" prop="responsibilities">
-          <el-input v-model="formData.responsibilities" type="textarea" :rows="4" placeholder="请输入岗位职责" />
-        </el-form-item>
-        <el-form-item label="任职要求" prop="requirements">
-          <el-input v-model="formData.requirements" type="textarea" :rows="4" placeholder="请输入任职要求" />
+        <el-form-item label="职位信息" prop="jobInfo">
+          <el-input v-model="formData.jobInfo" type="textarea" :rows="6" placeholder="请输入职位信息（包括岗位职责和任职要求）" />
         </el-form-item>
         <el-form-item label="福利待遇" prop="welfare">
           <el-input v-model="formData.welfare" type="textarea" :rows="4" placeholder="请输入福利待遇，多条用逗号分隔" />
@@ -265,13 +262,9 @@
         <div class="detail-item"><label>工作经验：</label><span>{{ previewData.experience }}</span></div>
         <div class="detail-item"><label>招聘人数：</label><span>{{ previewData.recruitCount }}人</span></div>
         <el-divider />
-        <div class="section" v-if="previewData.responsibilities">
-          <h3>岗位职责</h3>
-          <p>{{ previewData.responsibilities }}</p>
-        </div>
-        <div class="section" v-if="previewData.requirements">
-          <h3>任职要求</h3>
-          <p>{{ previewData.requirements }}</p>
+        <div class="section" v-if="previewData.jobInfo">
+          <h3>职位信息</h3>
+          <p>{{ previewData.jobInfo }}</p>
         </div>
         <div class="section" v-if="previewData.welfare">
           <h3>福利待遇</h3>
@@ -342,7 +335,7 @@ const dialogTitle = computed(() => isEdit.value ? '编辑职位' : '新增职位
 const formData = reactive({
   id: null, jobName: '', company: '', salaryMin: 0, salaryMax: 0, workAddress: '',
   education: '不限', experience: '不限', recruitCount: 1,
-  responsibilities: '', requirements: '', welfare: '',
+  jobInfo: '', welfare: '',
   contactName: '', contactPhone: '', contactEmail: ''
 })
 
@@ -394,7 +387,7 @@ const handleEdit = async (row) => {
 }
 
 const resetForm = () => {
-  Object.assign(formData, { id: null, jobName: '', company: '', salaryMin: 0, salaryMax: 0, workAddress: '', education: '不限', experience: '不限', recruitCount: 1, responsibilities: '', requirements: '', welfare: '', contactName: '', contactPhone: '', contactEmail: '' })
+  Object.assign(formData, { id: null, jobName: '', company: '', salaryMin: 0, salaryMax: 0, workAddress: '', education: '不限', experience: '不限', recruitCount: 1, jobInfo: '', welfare: '', contactName: '', contactPhone: '', contactEmail: '' })
   formRef.value?.resetFields()
 }
 

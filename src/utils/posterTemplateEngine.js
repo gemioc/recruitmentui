@@ -273,20 +273,15 @@ export const tech01Template = {
     { elType: 'text', x: 1290, y: 318, fontSize: 16, color: '#64748B', text: '招聘人数' },
     { elType: 'text', x: 1690, y: 318, fontSize: 16, color: '#1E293B', anchor: 'end', fontWeight: '500', key: 'recruitCount', containerWidth: 260, default: '若干' },
 
-    // ===== 岗位职责 =====
-    { elType: 'text', x: 810, y: 380, fontSize: 20, color: '#1E3A5F', fontWeight: 'bold', text: '岗位职责' },
-    { elType: 'rect', x: 810, y: 400, width: 960, height: 120, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 830, y: 430, fontSize: 15, color: '#475569', key: 'responsibilities', containerWidth: 920, containerHeight: 80, lineHeight: 22, minFontSize: 10, default: '岗位职责内容' },
-
-    // ===== 任职要求 =====
-    { elType: 'text', x: 810, y: 560, fontSize: 20, color: '#1E3A5F', fontWeight: 'bold', text: '任职要求' },
-    { elType: 'rect', x: 810, y: 580, width: 960, height: 140, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 830, y: 610, fontSize: 15, color: '#475569', key: 'requirements', containerWidth: 920, containerHeight: 100, lineHeight: 22, minFontSize: 10, default: '任职要求内容' },
+    // ===== 职位信息 =====
+    { elType: 'text', x: 810, y: 380, fontSize: 20, color: '#1E3A5F', fontWeight: 'bold', text: '职位信息' },
+    { elType: 'rect', x: 810, y: 400, width: 960, height: 260, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
+    { elType: 'tspanText', x: 830, y: 430, fontSize: 15, color: '#475569', key: 'jobInfo', containerWidth: 880, containerHeight: 220, lineHeight: 22, minFontSize: 10, default: '职位信息内容' },
 
     // ===== 福利待遇 =====
-    { elType: 'text', x: 810, y: 760, fontSize: 20, color: '#1E3A5F', fontWeight: 'bold', text: '福利待遇' },
-    { elType: 'rect', x: 810, y: 780, width: 960, height: 100, rx: 10, fill: '#EFF6FF' },
-    { elType: 'tspanText', x: 830, y: 810, fontSize: 15, color: '#475569', key: 'welfare', containerWidth: 920, containerHeight: 60, lineHeight: 22, minFontSize: 10, default: '福利待遇内容' },
+    { elType: 'text', x: 810, y: 700, fontSize: 20, color: '#1E3A5F', fontWeight: 'bold', text: '福利待遇' },
+    { elType: 'rect', x: 810, y: 720, width: 960, height: 100, rx: 10, fill: '#EFF6FF' },
+    { elType: 'tspanText', x: 830, y: 750, fontSize: 15, color: '#475569', key: 'welfare', containerWidth: 880, containerHeight: 60, lineHeight: 22, minFontSize: 10, default: '福利待遇内容' },
 
     // ===== 联系方式 =====
     { elType: 'rect', x: 810, y: 910, width: 960, height: 60, rx: 10, fill: '#1E3A5F' },
@@ -393,23 +388,18 @@ export const tech02Template = {
     { elType: 'text', x: 740, y: 410, fontSize: 14, color: '#666666', fontFamily: 'Arial', text: 'POSITION DETAILS' },
     { elType: 'line', x1: 740, y1: 430, x2: 1780, y2: 430, stroke: '#E8F5E9', 'stroke-width': 2 },
 
-    // ===== 岗位职责 =====
-    { elType: 'text', x: 740, y: 470, fontSize: 18, color: '#1B5E20', fontWeight: 'bold', text: '岗位职责' },
-    { elType: 'rect', x: 740, y: 490, width: 1040, height: 100, rx: 8, fill: '#F1F8E9' },
-    { elType: 'tspanText', x: 755, y: 515, fontSize: 14, color: '#37474F', key: 'responsibilities', containerWidth: 1010, containerHeight: 65, lineHeight: 20, minFontSize: 10, default: '岗位职责内容' },
-
-    // ===== 任职要求 =====
-    { elType: 'text', x: 740, y: 615, fontSize: 18, color: '#1B5E20', fontWeight: 'bold', text: '任职要求' },
-    { elType: 'rect', x: 740, y: 635, width: 1040, height: 120, rx: 8, fill: '#F1F8E9' },
-    { elType: 'tspanText', x: 755, y: 660, fontSize: 14, color: '#37474F', key: 'requirements', containerWidth: 1010, containerHeight: 85, lineHeight: 20, minFontSize: 10, default: '任职要求内容' },
+    // ===== 职位信息 =====
+    { elType: 'text', x: 740, y: 470, fontSize: 18, color: '#1B5E20', fontWeight: 'bold', text: '职位信息' },
+    { elType: 'rect', x: 740, y: 490, width: 1040, height: 220, rx: 8, fill: '#F1F8E9' },
+    { elType: 'tspanText', x: 755, y: 515, fontSize: 14, color: '#37474F', key: 'jobInfo', containerWidth: 970, containerHeight: 185, lineHeight: 20, minFontSize: 10, default: '职位信息内容' },
 
     // ===== 联系栏 =====
-    { elType: 'rect', x: 740, y: 780, width: 1040, height: 70, rx: 10, fill: 'url(#greenBg)' },
-    { elType: 'text', x: 820, y: 820, fontSize: 20, color: '#FFFFFF', key: 'contactName', containerWidth: 300, default: '联系人' },
-    { elType: 'text', x: 1200, y: 820, fontSize: 20, color: '#FFC107', key: 'contactPhone', default: '联系电话' },
+    { elType: 'rect', x: 740, y: 740, width: 1040, height: 70, rx: 10, fill: 'url(#greenBg)' },
+    { elType: 'text', x: 820, y: 780, fontSize: 20, color: '#FFFFFF', key: 'contactName', containerWidth: 300, default: '联系人' },
+    { elType: 'text', x: 1200, y: 780, fontSize: 20, color: '#FFC107', key: 'contactPhone', default: '联系电话' },
 
     // ===== 底部装饰 =====
-    { elType: 'line', x1: 100, y1: 1030, x2: 1820, y2: 1030, stroke: '#1B5E20', 'stroke-width': 3 }
+    { elType: 'line', x1: 100, y1: 990, x2: 1820, y2: 990, stroke: '#1B5E20', 'stroke-width': 3 }
   ]
 }
 
@@ -503,15 +493,9 @@ export const adminTemplate = {
 
     // ===== 岗位职责 =====
     { elType: 'rect', x: 760, y: 450, width: 8, height: 40, rx: 4, fill: '#3B82F6' },
-    { elType: 'text', x: 785, y: 480, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '岗位职责' },
-    { elType: 'rect', x: 760, y: 505, width: 1060, height: 120, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 785, y: 545, fontSize: 15, color: '#475569', key: 'responsibilities', containerWidth: 1010, containerHeight: 70, lineHeight: 22, minFontSize: 10, default: '岗位职责内容' },
-
-    // ===== 任职要求 =====
-    { elType: 'rect', x: 760, y: 660, width: 8, height: 40, rx: 4, fill: '#3B82F6' },
-    { elType: 'text', x: 785, y: 690, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '任职要求' },
-    { elType: 'rect', x: 760, y: 715, width: 1060, height: 120, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 785, y: 755, fontSize: 15, color: '#475569', key: 'requirements', containerWidth: 1010, containerHeight: 70, lineHeight: 22, minFontSize: 10, default: '任职要求内容' }
+    { elType: 'text', x: 785, y: 480, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '职位信息' },
+    { elType: 'rect', x: 760, y: 505, width: 1060, height: 240, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
+    { elType: 'tspanText', x: 785, y: 545, fontSize: 15, color: '#475569', key: 'jobInfo', containerWidth: 980, containerHeight: 190, lineHeight: 22, minFontSize: 10, default: '职位信息内容' }
   ]
 }
 
