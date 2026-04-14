@@ -87,6 +87,28 @@ export function batchUpdateJobStatus(ids, status) {
 }
 
 /**
+ * 批量删除职位
+ * @param {array} ids - 职位ID列表
+ */
+export function batchDeleteJobs(ids) {
+  return request({
+    url: '/jobs/batch',
+    method: 'delete',
+    data: ids
+  })
+}
+
+/**
+ * 获取职位统计数据
+ */
+export function getJobStats() {
+  return request({
+    url: '/jobs/stats',
+    method: 'get'
+  })
+}
+
+/**
  * 下载职位导入模板
  */
 export function downloadJobTemplate() {

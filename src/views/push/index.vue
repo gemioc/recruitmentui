@@ -134,7 +134,7 @@
               v-model:current-page="contentQuery.pageNum"
               v-model:page-size="contentQuery.pageSize"
               :total="contentTotal"
-              :page-sizes="[10, 20, 50]"
+              :page-sizes="[10, 20, 50, 100]"
               layout="total, prev, pager, next"
               small
               @size-change="fetchContentList"
@@ -167,6 +167,13 @@
 
           <!-- 分组模式 -->
           <div v-if="pushMode === 'group'" class="group-mode">
+            <div class="select-all-bar">
+              <el-checkbox
+                :model-value="isAllGroupsSelected"
+                :indeterminate="isSomeGroupsSelected"
+                @change="toggleAllGroups"
+              >全选（{{ groupList.length }} 个分组）</el-checkbox>
+            </div>
             <div class="group-list">
               <div
                 v-for="group in groupList"
@@ -212,6 +219,11 @@
           <!-- 设备模式 -->
           <div v-else class="device-mode">
             <div class="device-toolbar">
+              <el-checkbox
+                :model-value="isAllDevicesSelected"
+                :indeterminate="isSomeDevicesSelected"
+                @change="toggleAllDevices"
+              >全选（{{ deviceList.length }} 台）</el-checkbox>
               <el-input
                 v-model="deviceQuery.deviceName"
                 placeholder="搜索设备名称"
@@ -226,7 +238,7 @@
                 placeholder="筛选分组"
                 clearable
                 size="small"
-                style="width: 150px"
+                style="width: 130px"
               >
                 <el-option
                   v-for="group in groupList"
@@ -234,6 +246,17 @@
                   :label="group.groupName"
                   :value="group.id"
                 />
+              </el-select>
+              <el-select
+                v-model="deviceQuery.onlineStatus"
+                placeholder="在线状态"
+                clearable
+                size="small"
+                style="width: 110px"
+              >
+                <el-option label="全部" :value="null" />
+                <el-option label="在线" :value="1" />
+                <el-option label="离线" :value="0" />
               </el-select>
               <el-button type="primary" size="small" @click="fetchDeviceList">
                 <el-icon><Search /></el-icon>
@@ -278,7 +301,7 @@
               v-model:current-page="deviceQuery.pageNum"
               v-model:page-size="deviceQuery.pageSize"
               :total="deviceTotal"
-              :page-sizes="[10, 20, 50]"
+              :page-sizes="[10, 20, 50, 100]"
               layout="total, prev, pager, next"
               small
               @size-change="fetchDeviceList"
@@ -379,7 +402,7 @@ const contentTotal = ref(0)
 const contentLoading = ref(false)
 const contentQuery = reactive({
   pageNum: 1,
-  pageSize: 20,
+  pageSize: 10,
   keyword: ''
 })
 
@@ -391,10 +414,10 @@ const deviceList = ref([])
 const deviceTotal = ref(0)
 const deviceQuery = reactive({
   pageNum: 1,
-  pageSize: 20,
+  pageSize: 500,
   groupId: null,
   deviceName: '',
-  onlineStatus: 1
+  onlineStatus: null
 })
 
 // 选中项
@@ -450,6 +473,22 @@ const canPush = computed(() => {
     return selectedDeviceIds.value.length > 0
   }
 })
+
+// 全选计算属性 - 分组
+const isAllGroupsSelected = computed(() =>
+  groupList.value.length > 0 && groupList.value.every(g => selectedGroupIds.value.includes(g.id))
+)
+const isSomeGroupsSelected = computed(() =>
+  selectedGroupIds.value.length > 0 && !isAllGroupsSelected.value
+)
+
+// 全选计算属性 - 设备
+const isAllDevicesSelected = computed(() =>
+  deviceList.value.length > 0 && deviceList.value.every(d => selectedDeviceIds.value.includes(d.id))
+)
+const isSomeDevicesSelected = computed(() =>
+  selectedDeviceIds.value.length > 0 && !isAllDevicesSelected.value
+)
 
 // 获取文件URL
 const getFileUrl = (filePath) => {
@@ -557,6 +596,24 @@ const toggleDeviceSelection = (device) => {
   }
 }
 
+// 全选分组
+const toggleAllGroups = (val) => {
+  if (val) {
+    selectedGroupIds.value = groupList.value.map(g => g.id)
+  } else {
+    selectedGroupIds.value = []
+  }
+}
+
+// 全选设备
+const toggleAllDevices = (val) => {
+  if (val) {
+    selectedDeviceIds.value = deviceList.value.map(d => d.id)
+  } else {
+    selectedDeviceIds.value = []
+  }
+}
+
 // 推送
 const handlePush = async () => {
   if (selectedContentIds.value.length === 0) {
@@ -609,6 +666,8 @@ const handlePush = async () => {
       playRule: pushConfig
     })
     ElMessage.success('推送成功')
+    selectedDeviceIds.value = []
+    selectedGroupIds.value = []
     pushCooldown.value = true
     setTimeout(() => {
       pushCooldown.value = false
@@ -860,6 +919,13 @@ onMounted(() => {
   flex-direction: column;
   min-height: 0;
 
+  .select-all-bar {
+    padding: 8px 4px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+
   .group-list {
     flex: 1;
     overflow-y: auto;
@@ -977,6 +1043,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
 
   .device-toolbar {
     display: flex;
@@ -986,12 +1053,10 @@ onMounted(() => {
   }
 
   .device-grid {
-    flex: 1;
+    flex-shrink: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 12px;
-    overflow-y: auto;
-    min-height: 0;
     align-content: flex-start;
   }
 
@@ -1128,8 +1193,8 @@ onMounted(() => {
 
 .device-mode {
   :deep(.el-pagination) {
-    margin-top: auto;
-    padding-top: 12px;
+    margin-top: 12px;
+    padding-top: 0;
     display: flex;
     justify-content: flex-end;
     flex-shrink: 0;

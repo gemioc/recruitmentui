@@ -8,7 +8,7 @@
             <el-icon><Briefcase /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">{{ total }}</div>
+            <div class="stat-value">{{ statsData.total }}</div>
             <div class="stat-label">职位总数</div>
           </div>
         </div>
@@ -19,7 +19,7 @@
             <el-icon><CircleCheckFilled /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">{{ recruitingCount }}</div>
+            <div class="stat-value">{{ statsData.recruitingCount }}</div>
             <div class="stat-label">招聘中</div>
           </div>
         </div>
@@ -30,7 +30,7 @@
             <el-icon><CircleCloseFilled /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">{{ total - recruitingCount }}</div>
+            <div class="stat-value">{{ statsData.expiredCount }}</div>
             <div class="stat-label">已截止</div>
           </div>
         </div>
@@ -41,7 +41,7 @@
             <el-icon><Calendar /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">{{ todayCount }}</div>
+            <div class="stat-value">{{ statsData.todayCount }}</div>
             <div class="stat-label">今日新增</div>
           </div>
         </div>
@@ -53,20 +53,20 @@
       <div class="search-bar">
         <div class="search-filters">
           <el-input
-            v-model="queryParams.jobName"
-            placeholder="搜索职位名称..."
-            :prefix-icon="Search"
-            clearable
-            style="width: 180px"
-            @keyup.enter="handleSearch"
+              v-model="queryParams.jobName"
+              placeholder="搜索职位名称..."
+              :prefix-icon="Search"
+              clearable
+              style="width: 180px"
+              @keyup.enter="handleSearch"
           />
           <el-input
-            v-model="queryParams.workAddress"
-            placeholder="搜索工作地点..."
-            :prefix-icon="Location"
-            clearable
-            style="width: 180px"
-            @keyup.enter="handleSearch"
+              v-model="queryParams.workAddress"
+              placeholder="搜索工作地点..."
+              :prefix-icon="Location"
+              clearable
+              style="width: 180px"
+              @keyup.enter="handleSearch"
           />
           <el-select v-model="queryParams.status" placeholder="全部状态" clearable style="width: 120px">
             <el-option label="招聘中" :value="1" />
@@ -81,6 +81,14 @@
           </el-button>
         </div>
         <div class="search-actions">
+          <el-button
+              v-if="selectedJobs.length > 0"
+              type="danger"
+              @click="handleBatchDelete"
+          >
+            <el-icon><Delete /></el-icon>
+            批量删除 ({{ selectedJobs.length }})
+          </el-button>
           <el-button type="success" @click="handleImport">
             <el-icon><Upload /></el-icon>
             批量导入
@@ -99,29 +107,30 @@
 
     <!-- 职位列表 -->
     <el-card shadow="never" class="table-card" v-loading="loading">
-      <template #header>
-        <div class="card-header">
-          <span>职位列表</span>
-        </div>
-      </template>
+      <!-- 表格标题栏 -->
+      <div class="table-header-bar">
+        <span class="table-title">职位列表</span>
+        <span class="table-tip">已选择 <b>{{ selectedJobs.length }}</b> 项</span>
+      </div>
 
-      <el-table :data="jobList" stripe>
+      <el-table :data="jobList" stripe @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="jobName" label="职位名称" min-width="150" />
         <el-table-column prop="company" label="公司名称" min-width="150" />
         <el-table-column label="薪资范围" width="150">
           <template #default="{ row }">
-            {{ row.salaryMin }}-{{ row.salaryMax }}
+            {{ formatSalary(row.salaryMin, row.salaryMax) }}
           </template>
         </el-table-column>
         <el-table-column prop="workAddress" label="工作地点" min-width="120" />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-switch
-              v-model="row.status"
-              :active-value="1"
-              :inactive-value="0"
-              @change="handleStatusChange(row)"
+                v-model="row.status"
+                :active-value="1"
+                :inactive-value="0"
+                @change="handleStatusChange(row)"
             />
           </template>
         </el-table-column>
@@ -130,23 +139,26 @@
             {{ formatDate(row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+
+        <!-- 修复后的操作列 -->
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
             <el-button type="primary" link @click="handlePreview(row)">预览</el-button>
             <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
+
       </el-table>
 
       <el-pagination
-        v-model:current-page="queryParams.pageNum"
-        v-model:page-size="queryParams.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchJobList"
-        @current-change="fetchJobList"
+          v-model:current-page="queryParams.pageNum"
+          v-model:page-size="queryParams.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="fetchJobList"
+          @current-change="fetchJobList"
       />
     </el-card>
 
@@ -254,7 +266,7 @@
         <h2 class="title">{{ previewData.jobName }}</h2>
         <div class="company">{{ previewData.company }}</div>
         <div class="info-row">
-          <span class="salary">{{ previewData.salaryMin }}-{{ previewData.salaryMax }}元/月</span>
+          <span class="salary">{{ formatSalary(previewData.salaryMin, previewData.salaryMax) }}元/月</span>
           <span class="location">{{ previewData.workAddress }}</span>
         </div>
         <el-divider />
@@ -310,9 +322,32 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Briefcase, CircleCheckFilled, CircleCloseFilled, Calendar, Search, Location, Upload, Download, Plus, User, Medal, Edit, View, Delete, UploadFilled } from '@element-plus/icons-vue'
-import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus, downloadJobTemplate, importJobs } from '@/api/job'
+// ✅ 修复：完整引入所有需要的图标
+import { Briefcase, CircleCheckFilled, CircleCloseFilled, Calendar, Search, Location, Upload, Download, Plus, Delete, Edit, View, UploadFilled, Refresh } from '@element-plus/icons-vue'
+import { getJobList, getJobDetail, createJob, updateJob, deleteJob, updateJobStatus, downloadJobTemplate, importJobs, batchDeleteJobs, getJobStats } from '@/api/job'
 import { formatDate } from '@/utils/format'
+
+// 格式化薪资显示
+const formatSalary = (min, max) => {
+  if (!min && !max) return '面议'
+  if (min === max) return `${min}`
+  if (!min || min === 0) return `${max}`
+  if (!max || max === 0) return `${min}`
+  return `${min}-${max}`
+}
+
+const selectedJobs = ref([])
+
+const handleSelectionChange = (rows) => {
+  selectedJobs.value = rows
+}
+
+const statsData = reactive({
+  total: 0,
+  recruitingCount: 0,
+  expiredCount: 0,
+  todayCount: 0
+})
 
 const queryParams = reactive({
   pageNum: 1,
@@ -344,7 +379,21 @@ const formRules = {
   company: [{ required: true, message: '请输入公司名称', trigger: 'blur' }],
   workAddress: [{ required: true, message: '请输入工作地点', trigger: 'blur' }],
   contactName: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
-  contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }, { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }]
+  contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }, { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }],
+  salaryMin: [{ validator: (rule, value, callback) => {
+      if (value && formData.salaryMax && value !== 0 && formData.salaryMax !== 0 && formData.salaryMax <= value) {
+        callback(new Error('薪资上限必须大于下限'))
+      } else {
+        callback()
+      }
+    }, trigger: 'blur' }],
+  salaryMax: [{ validator: (rule, value, callback) => {
+      if (value && formData.salaryMin && formData.salaryMin !== 0 && value !== 0 && value <= formData.salaryMin) {
+        callback(new Error('薪资上限必须大于下限'))
+      } else {
+        callback()
+      }
+    }, trigger: 'blur' }]
 }
 
 const previewVisible = ref(false)
@@ -357,11 +406,17 @@ const importFile = ref(null)
 const importResult = ref(null)
 
 // 统计数据
-const recruitingCount = computed(() => jobList.value.filter(j => j.status === 1).length)
-const todayCount = computed(() => {
-  const today = new Date().toDateString()
-  return jobList.value.filter(j => j.createTime && new Date(j.createTime).toDateString() === today).length
-})
+const fetchStats = async () => {
+  try {
+    const res = await getJobStats()
+    statsData.total = res.data.total || 0
+    statsData.recruitingCount = res.data.recruitingCount || 0
+    statsData.expiredCount = res.data.expiredCount || 0
+    statsData.todayCount = res.data.todayCount || 0
+  } catch (error) {
+    console.error('获取统计数据失败:', error)
+  }
+}
 
 const fetchJobList = async () => {
   loading.value = true
@@ -399,17 +454,30 @@ const handleSubmit = async () => {
     else { await createJob(formData); ElMessage.success('新增成功') }
     dialogVisible.value = false
     fetchJobList()
+    fetchStats()
   } catch (error) { console.error('保存失败:', error) } finally { submitLoading.value = false }
 }
 
 const handleStatusChange = async (row) => {
-  try { await updateJobStatus(row.id, row.status); ElMessage.success(row.status === 1 ? '已开启招聘' : '已截止招聘') } catch (error) { row.status = row.status === 1 ? 0 : 1; console.error('状态更新失败:', error) }
+  try { await updateJobStatus(row.id, row.status); ElMessage.success(row.status === 1 ? '已开启招聘' : '已截止招聘'); fetchStats() } catch (error) { row.status = row.status === 1 ? 0 : 1; console.error('状态更新失败:', error) }
 }
 
 const handlePreview = async (row) => { try { const res = await getJobDetail(row.id); previewData.value = res.data; previewVisible.value = true } catch (error) { console.error('获取详情失败:', error) } }
 
 const handleDelete = async (row) => {
-  try { await ElMessageBox.confirm(`确定要删除职位【${row.jobName}】吗？`, '提示', { type: 'warning' }); await deleteJob(row.id); ElMessage.success('删除成功'); fetchJobList() } catch (error) { if (error !== 'cancel') console.error('删除失败:', error) }
+  try { await ElMessageBox.confirm(`确定要删除职位【${row.jobName}】吗？`, '提示', { type: 'warning' }); await deleteJob(row.id); ElMessage.success('删除成功'); fetchJobList(); fetchStats() } catch (error) { if (error !== 'cancel') console.error('删除失败:', error) }
+}
+
+const handleBatchDelete = async () => {
+  if (selectedJobs.value.length === 0) { ElMessage.warning('请选择要删除的职位'); return }
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedJobs.value.length} 个职位吗？`, '提示', { type: 'warning' })
+    await batchDeleteJobs(selectedJobs.value.map(j => j.id))
+    ElMessage.success('批量删除成功')
+    selectedJobs.value = []
+    fetchJobList()
+    fetchStats()
+  } catch (error) { if (error !== 'cancel') console.error('批量删除失败:', error) }
 }
 
 const handleDownloadTemplate = async () => {
@@ -429,13 +497,13 @@ const handleConfirmImport = async () => {
       importResult.value = res.data
       const { success, fail } = res.data
       if (fail > 0) ElMessage.warning(`导入完成：成功 ${success} 条，失败 ${fail} 条`)
-      else { ElMessage.success(`导入成功：${success} 条`); importVisible.value = false; importFile.value = null; uploadRef.value?.clearFiles(); fetchJobList() }
+      else { ElMessage.success(`导入成功：${success} 条`); importVisible.value = false; importFile.value = null; uploadRef.value?.clearFiles(); fetchJobList(); fetchStats() }
     } else { ElMessage.error(res.message || '导入失败') }
   } catch (error) { console.error('导入失败:', error); ElMessage.error('导入失败') } finally { importLoading.value = false }
 }
 
-onMounted(() => { fetchJobList() })
-onActivated(() => fetchJobList())
+onMounted(() => { fetchJobList(); fetchStats() })
+onActivated(() => { fetchJobList(); fetchStats() })
 </script>
 
 <style lang="scss" scoped>
@@ -461,8 +529,20 @@ onActivated(() => fetchJobList())
   }
   .table-card {
     border-radius: 12px;
-    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .table-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      .table-title { font-size: 15px; font-weight: 600; color: #303133; }
+      .table-tip { font-size: 13px; color: #909399; b { color: #409eff; } }
+    }
     .el-pagination { margin-top: 20px; display: flex; justify-content: flex-end; }
+  }
+
+  @keyframes batchIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 .job-preview {

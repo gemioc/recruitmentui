@@ -92,9 +92,10 @@
           <template #default="{ row }">
             <el-image
               :src="getPosterUrl(row.filePath)"
-              :preview-src-list="[getPosterUrl(row.filePath)]"
               fit="cover"
               class="poster-thumb"
+              :preview-src-list="[]"
+              @click="handlePreview(row)"
             >
               <template #error>
                 <div class="image-placeholder">
@@ -104,7 +105,12 @@
             </el-image>
           </template>
         </el-table-column>
-        <el-table-column prop="jobName" label="关联职位" min-width="120" />
+        <el-table-column label="关联职位" min-width="180">
+          <template #default="{ row }">
+            <span v-if="row.relatedJobNames">{{ row.relatedJobNames }}</span>
+            <span v-else>{{ row.jobName }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="templateName" label="使用模板" width="120" />
         <el-table-column label="创建时间" width="170">
           <template #default="{ row }">
@@ -125,7 +131,7 @@
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[12, 24, 48, 96]"
+        :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next"
         @size-change="fetchPosterList"
         @current-change="fetchPosterList"
@@ -133,7 +139,7 @@
     </el-card>
 
     <!-- 预览弹窗 -->
-    <el-dialog v-model="previewVisible" title="海报预览" width="800px">
+    <el-dialog v-model="previewVisible" title="海报预览" width="1100px" top="2vh">
       <div class="preview-container" v-if="previewData">
         <img :src="getPosterUrl(previewData.filePath)" alt="海报预览" class="preview-image" />
       </div>
@@ -185,7 +191,7 @@ const router = useRouter()
 
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 24,
+  pageSize: 10,
   posterName: ''
 })
 
@@ -371,6 +377,11 @@ onActivated(() => fetchPosterList())
 }
 .preview-container {
   text-align: center;
-  .preview-image { max-width: 100%; max-height: 600px; }
+  .preview-image {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
 }
 </style>

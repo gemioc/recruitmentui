@@ -143,9 +143,6 @@
             <el-option v-for="d in pendingDevices" :key="d.deviceCode" :label="d.deviceCode" :value="d.deviceCode">
               <div class="device-code-option">
                 <span class="code">{{ d.deviceCode }}</span>
-                <span class="info" v-if="d.ip">
-                  <el-tag type="success" size="small">{{ d.ip }}</el-tag>
-                </span>
               </div>
             </el-option>
           </el-select>

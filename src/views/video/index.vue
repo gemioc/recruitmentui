@@ -121,7 +121,7 @@
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[12, 24, 48, 96]"
+        :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next"
         @size-change="fetchVideoList"
         @current-change="fetchVideoList"
@@ -232,7 +232,7 @@ const todayCount = computed(() => {
 
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 24,
+  pageSize: 10,
   videoName: ''
 })
 

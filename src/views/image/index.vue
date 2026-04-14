@@ -139,7 +139,7 @@
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[12, 24, 48, 96]"
+        :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next"
         @size-change="fetchImageList"
         @current-change="fetchImageList"
@@ -257,7 +257,7 @@ const todayCount = computed(() => {
 
 const queryParams = reactive({
   pageNum: 1,
-  pageSize: 24,
+  pageSize: 10,
   imageName: ''
 })
 
@@ -298,8 +298,9 @@ const pushForm = reactive({
 
 const getImageUrl = (row) => {
   if (!row || !row.filePath) return ''
-  const path = row.filePath.startsWith('/') ? row.filePath.slice(1) : row.filePath
-  return `/api/files/${path}`
+  // filePath 是 /images/xxx，需要拼接成 /files/images/xxx
+  const path = row.filePath.replace(/^\/images\//, '/files/images/')
+  return path
 }
 
 const fetchImageList = async () => {
