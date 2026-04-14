@@ -175,9 +175,10 @@
     </el-dialog>
 
     <!-- 播放弹窗 -->
-    <el-dialog v-model="playDialogVisible" title="视频播放" width="800px">
+    <el-dialog v-model="playDialogVisible" title="视频播放" width="800px" @close="handlePlayDialogClose">
       <div class="video-player" v-if="playVideo">
         <video
+          ref="videoRef"
           :src="videoPlayUrl"
           controls
           class="video-element"
@@ -262,6 +263,16 @@ const formRules = {
 
 const playDialogVisible = ref(false)
 const playVideo = ref(null)
+const videoRef = ref(null)
+
+const handlePlayDialogClose = () => {
+  // 关闭弹窗前先暂停视频，防止后台继续播放
+  if (videoRef.value) {
+    videoRef.value.pause()
+    videoRef.value.currentTime = 0
+  }
+  playVideo.value = null
+}
 const videoPlayUrl = computed(() => {
   if (!playVideo.value || !playVideo.value.filePath) return ''
   const path = playVideo.value.filePath.startsWith('/')
