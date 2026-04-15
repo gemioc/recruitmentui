@@ -173,8 +173,8 @@
       </div>
 
       <!-- 右侧设备状态面板 -->
-      <div class="device-panel">
-        <el-card shadow="hover" class="device-card">
+      <div class="device-panel" ref="devicePanelRef">
+        <el-card shadow="hover" class="device-card" ref="deviceCardRef">
           <template #header>
             <span class="card-title">
               <el-icon><Monitor /></el-icon>
@@ -196,7 +196,7 @@
           </div>
 
           <div class="device-list">
-            <el-scrollbar height="calc(100vh - 520px)">
+            <el-scrollbar>
               <div
                 v-for="device in deviceStats.deviceStatusList"
                 :key="device.id"
@@ -229,7 +229,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, onActivated } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, onActivated, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
@@ -293,6 +293,8 @@ const trendChartRef = ref(null)
 const typeChartRef = ref(null)
 const deviceRankChartRef = ref(null)
 const hourChartRef = ref(null)
+const devicePanelRef = ref(null)
+const deviceCardRef = ref(null)
 
 let trendChart = null
 let typeChart = null
@@ -417,7 +419,7 @@ const initCharts = () => {
           itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.1)' }
         },
         data: [],
-        color: ['#409eff', '#67c23a']
+        color: ['#409eff', '#67c23a', '#f56c6c']
       }]
     })
   }
@@ -538,7 +540,7 @@ const updateCharts = (data) => {
       series: [{
         data: data.typeDistribution.map(item => ({
           value: item.count,
-          name: item.type === 'poster' ? '海报' : '视频'
+          name: item.type === 'poster' ? '海报' : item.type === 'video' ? '视频' : '图片'
         }))
       }]
     })
@@ -713,6 +715,16 @@ const handleResize = () => {
   typeChart?.resize()
   deviceRankChart?.resize()
   hourChart?.resize()
+  syncDevicePanelHeight()
+}
+
+// 同步右侧设备面板高度与左侧图表区域一致
+const syncDevicePanelHeight = () => {
+  if (!devicePanelRef.value) return
+  const chartsArea = document.querySelector('.charts-area')
+  if (chartsArea) {
+    devicePanelRef.value.style.maxHeight = chartsArea.offsetHeight + 'px'
+  }
 }
 
 onMounted(() => {
@@ -726,6 +738,8 @@ onMounted(() => {
   }, 30000)
   // 图表数据 - 受筛选影响
   fetchChartStatistics()
+  // 等待图表渲染完成后同步右侧高度
+  nextTick(() => syncDevicePanelHeight())
   window.addEventListener('resize', handleResize)
 })
 
@@ -745,6 +759,7 @@ onActivated(() => {
   fetchRealTimeStatistics()
   fetchDeviceStats()
   fetchChartStatistics()
+  nextTick(() => syncDevicePanelHeight())
 })
 </script>
 
@@ -974,19 +989,32 @@ onActivated(() => {
 
 // 设备面板
 .device-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
   .device-card {
     border-radius: 12px;
     border: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     height: 100%;
 
     :deep(.el-card__header) {
       padding: 16px 20px;
       border-bottom: 1px solid #f0f0f0;
+      flex-shrink: 0;
     }
 
     :deep(.el-card__body) {
       padding: 0;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
   }
 
@@ -995,6 +1023,7 @@ onActivated(() => {
     padding: 16px 20px;
     gap: 32px;
     border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
 
     .summary-item {
       display: flex;
@@ -1024,6 +1053,14 @@ onActivated(() => {
   }
 
   .device-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+
+    :deep(.el-scrollbar__wrap) {
+      overflow-x: hidden;
+    }
+
     .device-item {
       padding: 12px 20px;
       border-bottom: 1px solid #f5f5f5;

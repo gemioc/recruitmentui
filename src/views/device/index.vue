@@ -98,7 +98,7 @@
 
       <el-table :data="deviceList" stripe>
         <el-table-column prop="deviceName" label="设备名称" min-width="120" />
-        <el-table-column prop="deviceCode" label="设备编号" width="150" />
+        <el-table-column prop="deviceCode" label="设备编号" min-width="180" show-overflow-tooltip />
         <el-table-column label="在线状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.onlineStatus === 1 ? 'success' : 'danger'" size="small">
