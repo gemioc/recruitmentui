@@ -928,7 +928,9 @@ const buildMultiJobData = (jobs) => {
     experience: job.experience || '不限',
     recruitCount: job.recruitCount ? `${job.recruitCount}人` : '若干',
     welfare: job.welfare || '面议',
-    jobInfo: job.jobInfo || ''
+    jobInfo: job.jobInfo || '',
+    contactName: job.contactName || '',
+    contactPhone: job.contactPhone || ''
   }))
 
   return {
@@ -996,7 +998,7 @@ const handleBatchGenerate = async () => {
       await batchCreatePoster({
         templateId: selectedTemplate.value.id,
         jobIds: batchSelectedJobs.value.map(j => j.id),
-        posterName: `多岗位招聘海报_${new Date().getTime()}`,
+        posterName: `${batchSelectedJobs.value[0]?.company || '公司名称'}-多岗位招聘`,
         svgContent
       })
       batchProgressList.value[0].status = 'success'

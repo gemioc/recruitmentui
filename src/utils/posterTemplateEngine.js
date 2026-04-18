@@ -743,7 +743,12 @@ export const multi01Template = {
         // 职位信息标签
         { elType: 'text', x: '{computedX + 30}', y: '{computedY + 130}', fontSize: 14, color: '#2d3748', fontWeight: 'bold', text: '★ 职位信息：' },
         // 职位信息内容（加粗，紧邻表头）
-        { elType: 'tspanText', x: '{computedX + 122}', y: '{computedY + 130}', fontSize: 14, color: '#2d3748', fontWeight: 'bold', key: 'job.jobInfo', containerWidth: 748, containerHeight: 55, lineHeight: 20, minFontSize: 11, default: '职位信息内容' }
+        { elType: 'tspanText', x: '{computedX + 122}', y: '{computedY + 130}', fontSize: 14, color: '#2d3748', fontWeight: 'bold', key: 'job.jobInfo', containerWidth: 748, containerHeight: 55, lineHeight: 20, minFontSize: 11, default: '职位信息内容' },
+        // 联系人和联系电话（放在卡片底部）
+        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 185}', fontSize: 13, color: '#4a5568', fontWeight: 'bold', text: '联系人：' },
+        { elType: 'text', x: '{computedX + 95}', y: '{computedY + 185}', fontSize: 13, color: '#2d3748', key: 'job.contactName', default: '' },
+        { elType: 'text', x: '{computedX + 200}', y: '{computedY + 185}', fontSize: 13, color: '#4a5568', fontWeight: 'bold', text: '联系电话：' },
+        { elType: 'text', x: '{computedX + 280}', y: '{computedY + 185}', fontSize: 13, color: '#2d3748', key: 'job.contactPhone', default: '' }
       ]
     },
 
