@@ -213,11 +213,19 @@
           </div>
         </div>
         <div class="bs-line" :class="{ active: batchSelectedJobs.length > 0 }" />
-        <div class="bs-step" :class="{ active: !!selectedTemplate && batchSelectedJobs.length > 0 }">
-          <div class="bs-circle"><span>3</span></div>
+        <div class="bs-step" :class="{ done: batchSelectedJobs.length > 0 && isMultiTemplate, active: batchSelectedJobs.length > 0 && isMultiTemplate && !customBottomText }">
+          <div class="bs-circle"><el-icon v-if="batchSelectedJobs.length > 0 && isMultiTemplate"><Check /></el-icon><span v-else>3</span></div>
           <div class="bs-text">
-            <div class="bs-title">批量生成</div>
-            <div class="bs-desc">确认配置开始生成</div>
+            <div class="bs-title">确认配置</div>
+            <div class="bs-desc">{{ isMultiTemplate ? '设置海报样式' : '确认生成配置' }}</div>
+          </div>
+        </div>
+        <div class="bs-line" :class="{ active: batchSelectedJobs.length > 0 && isMultiTemplate }" v-if="isMultiTemplate" />
+        <div class="bs-step" :class="{ active: batchSelectedJobs.length > 0 && isMultiTemplate && !!customBottomText }" v-if="isMultiTemplate">
+          <div class="bs-circle"><span>4</span></div>
+          <div class="bs-text">
+            <div class="bs-title">自定义设置</div>
+            <div class="bs-desc">设置底部标语</div>
           </div>
         </div>
       </div>
@@ -401,6 +409,28 @@
               </div>
             </el-card>
 
+            <!-- Step 4: 自定义设置（仅多岗位模板） -->
+            <el-card v-if="isMultiTemplate" shadow="never" class="batch-confirm-card step4-card">
+              <template #header>
+                <div class="batch-card-header">
+                  <div class="batch-step-tag step4">STEP 4</div>
+                  <span class="batch-card-title">自定义设置</span>
+                </div>
+              </template>
+              <el-form label-position="top">
+                <el-form-item label="底部标语">
+                  <el-input
+                    v-model="customBottomText"
+                    type="textarea"
+                    :rows="2"
+                    maxlength="100"
+                    show-word-limit
+                    placeholder="例如：期待您的加入 · WE LOOK FORWARD TO YOUR APPLICATION"
+                  />
+                </el-form-item>
+              </el-form>
+            </el-card>
+
             <!-- 生成按钮区 -->
             <div class="batch-cta-wrap">
               <div class="batch-cta-stat">
@@ -540,6 +570,7 @@ const mode = ref('single')
 // ─── 通用：模板 ───────────────────────────────────────────────
 const templateList = ref([])
 const selectedTemplate = ref(null)
+const customBottomText = ref('')
 
 // 单张模式：过滤掉多岗模板
 const singleTemplateList = computed(() => {
@@ -550,6 +581,9 @@ const singleTemplateList = computed(() => {
 const batchTemplateList = computed(() => {
   return templateList.value
 })
+
+// 是否多岗位模板
+const isMultiTemplate = computed(() => selectedTemplate.value?.id === 'multi_01')
 
 // ─── 单张模式：职位列表 & 表单 ───────────────────────────────
 const jobList = ref([])
@@ -927,7 +961,7 @@ const buildMultiJobData = (jobs) => {
     education: job.education || '不限',
     experience: job.experience || '不限',
     recruitCount: job.recruitCount ? `${job.recruitCount}人` : '若干',
-    welfare: job.welfare || '面议',
+    welfare: job.welfare || '',
     jobInfo: job.jobInfo || '',
     contactName: job.contactName || '',
     contactPhone: job.contactPhone || ''
@@ -940,7 +974,8 @@ const buildMultiJobData = (jobs) => {
     jobCount,
     totalCount,
     welfare: jobs[0]?.welfare || '',
-    jobs: jobsArray
+    jobs: jobsArray,
+    bottomText: customBottomText.value || ''
   }
 }
 
@@ -960,7 +995,7 @@ const handleBatchGenerate = async () => {
     return
   }
 
-  const isMultiTemplate = selectedTemplate.value.id === 'multi_01'
+  const isMultiTemplate = selectedTemplate.value?.id === 'multi_01'
 
   // 多岗位模板校验：必须同一家公司且最多6个职位
   if (isMultiTemplate) {
@@ -1325,6 +1360,11 @@ watch(batchJobList, () => {
 
       &.step2 { background: linear-gradient(135deg, #409eff 0%, #36cfc9 100%); }
       &.step3 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+      &.step4 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+
+    .step4-card {
+      margin-top: 12px;
+    }
     }
 
     .batch-card-title {
@@ -1461,6 +1501,31 @@ watch(batchJobList, () => {
 
       .job-name-cell { font-weight: 500; color: #303133; }
       .salary-cell { color: #f5880a; font-weight: 500; }
+
+      .bottom-text-preview {
+        margin-top: 12px;
+        padding: 10px 12px;
+        background: #f8f9ff;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+
+        .preview-label {
+          font-size: 12px;
+          color: #909399;
+          margin-bottom: 6px;
+        }
+
+        .preview-bar {
+          font-size: 14px;
+          color: #1a365d;
+          font-weight: 600;
+          text-align: center;
+          background: #1a365d;
+          color: #fff;
+          padding: 8px 12px;
+          border-radius: 4px;
+        }
+      }
     }
 
     .batch-table-footer {

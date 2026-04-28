@@ -252,12 +252,17 @@ function renderText(el, data) {
     if (normalizedKey.includes('.')) {
       const keys = normalizedKey.split('.')
       for (const k of keys) {
+        if (value == null) {
+          value = undefined
+          break
+        }
         value = value?.[k]
       }
     } else {
       value = data[el.key]
     }
-    text = String(value || el.default || '')
+    // 使用默认值保护，确保 undefined/null 都能 fallback
+    text = (value != null && value !== '') ? String(value) : (el.default != null ? String(el.default) : '')
   }
 
   // 容器宽度限制
@@ -297,7 +302,7 @@ function renderTspanText(el, data) {
     } else {
       value = data[el.key]
     }
-    text = String(value || el.default || '')
+    text = (value != null && value !== '') ? String(value) : (el.default != null ? String(el.default) : '')
   }
 
   const result = smartTextWrap(text, {
@@ -334,7 +339,7 @@ function renderTspanText(el, data) {
            ${hasAnchor ? `text-anchor="${anchor}"` : ''}>${tspans}</text>`
 }
 
-// ================== 蓝白商务模板定义 (template-business 风格) ==================
+// ================== 蓝色商务模板定义 (template-business 风格) ==================
 
 export const tech01Template = {
   id: 'tech_01',
@@ -379,11 +384,11 @@ export const tech01Template = {
     { elType: 'rect', x: 0, y: 0, width: 1920, height: 180, fill: 'url(#topBg)' },
     { elType: 'rect', x: 0, y: 0, width: 1920, height: 6, fill: 'url(#accentLine)' },
 
-    // ===== 公司名称 - 最上方中间位置 =====
-    { elType: 'text', x: 960, y: 70, fontSize: 48, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'company', containerWidth: 800, default: '公司名称' },
+    // ===== 公司名称 =====
+    { elType: 'text', x: 960, y: 95, fontSize: 56, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'company', containerWidth: 1250, minFontSize: 36, default: '公司名称' },
 
     // 主标题
-    { elType: 'text', x: 960, y: 125, fontSize: 28, color: '#a0aec0', anchor: 'middle', fontFamily: 'Arial', letterSpacing: 4, text: '招贤纳士 · WE ARE HIRING' },
+    { elType: 'text', x: 960, y: 150, fontSize: 28, color: '#a0aec0', anchor: 'middle', fontWeight: 'bold', fontFamily: 'Arial', letterSpacing: 4, text: '招贤纳士 · WE ARE HIRING' },
 
     // 顶部装饰线
     { elType: 'rect', x: 0, y: 174, width: 1920, height: 6, fill: 'url(#accentLine)' },
@@ -391,177 +396,65 @@ export const tech01Template = {
     // ===== 左侧蓝色竖条 =====
     { elType: 'rect', x: 0, y: 0, width: 8, height: 1080, fill: '#3B82F6' },
 
-    // ===== 白色主容器 - 所有信息放在同一个白框内 =====
-    { elType: 'rect', x: 40, y: 200, width: 1840, height: 800, rx: 16, fill: '#FFFFFF', stroke: '#E2E8F0', 'stroke-width': 1 },
+    // ===== 白色主容器 - 整体下移，高度增加 =====
+    { elType: 'rect', x: 40, y: 230, width: 1840, height: 810, rx: 16, fill: '#FFFFFF', stroke: '#E2E8F0', 'stroke-width': 1 },
 
     // ===== 职位名称 + 薪资 =====
-    { elType: 'text', x: 80, y: 270, fontSize: 36, color: '#1E3A5F', fontWeight: 'bold', key: 'jobTitle', containerWidth: 1400, default: '职位名称' },
-    { elType: 'rect', x: 1500, y: 230, width: 320, height: 50, rx: 8, fill: '#3B82F6' },
-    { elType: 'text', x: 1660, y: 265, fontSize: 28, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'salary', default: '面议' },
+    { elType: 'text', x: 80, y: 300, fontSize: 40, color: '#1E3A5F', fontWeight: 'bold', key: 'jobTitle', containerWidth: 1400, default: '职位名称' },
+    { elType: 'rect', x: 1500, y: 255, width: 320, height: 55, rx: 8, fill: '#3B82F6' },
+    { elType: 'text', x: 1660, y: 292, fontSize: 32, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'salary', default: '面议' },
 
     // ===== 信息标签栏 =====
-    { elType: 'rect', x: 80, y: 300, width: 1720, height: 50, rx: 8, fill: '#F8FAFC' },
+    { elType: 'rect', x: 80, y: 335, width: 1720, height: 60, rx: 8, fill: '#F8FAFC' },
 
     // 工作地点
-    { elType: 'rect', x: 100, y: 310, width: 120, height: 30, rx: 4, fill: '#e2e8f0' },
-    { elType: 'text', x: 160, y: 330, fontSize: 12, color: '#718096', anchor: 'middle', text: '工作地点' },
-    { elType: 'text', x: 500, y: 330, fontSize: 14, color: '#2d3748', fontWeight: 'bold', key: 'location', containerWidth: 400, default: '不限' },
+    { elType: 'rect', x: 100, y: 345, width: 140, height: 50, rx: 4, fill: '#e2e8f0' },
+    { elType: 'text', x: 170, y: 378, fontSize: 25, color: '#718096', fontWeight: 'bold', anchor: 'middle', text: '工作地点' },
+    { elType: 'text', x: 270, y: 378, fontSize: 25, color: '#2d3748', fontWeight: 'bold', key: 'location', containerWidth: 400, default: '不限' },
 
     // 学历要求
-    { elType: 'rect', x: 580, y: 310, width: 120, height: 30, rx: 4, fill: '#e2e8f0' },
-    { elType: 'text', x: 640, y: 330, fontSize: 12, color: '#718096', anchor: 'middle', text: '学历要求' },
-    { elType: 'text', x: 960, y: 330, fontSize: 14, color: '#2d3748', fontWeight: 'bold', key: 'education', containerWidth: 300, default: '不限' },
+    { elType: 'rect', x: 580, y: 345, width: 140, height: 50, rx: 4, fill: '#e2e8f0' },
+    { elType: 'text', x: 650, y: 378, fontSize: 25, color: '#718096', fontWeight: 'bold', anchor: 'middle', text: '学历要求' },
+    { elType: 'text', x: 750, y: 378, fontSize: 25, color: '#2d3748', fontWeight: 'bold', key: 'education', containerWidth: 300, default: '不限' },
 
     // 经验要求
-    { elType: 'rect', x: 1040, y: 310, width: 120, height: 30, rx: 4, fill: '#e2e8f0' },
-    { elType: 'text', x: 1100, y: 330, fontSize: 12, color: '#718096', anchor: 'middle', text: '经验要求' },
-    { elType: 'text', x: 1400, y: 330, fontSize: 14, color: '#2d3748', fontWeight: 'bold', key: 'experience', containerWidth: 300, default: '不限' },
+    { elType: 'rect', x: 1040, y: 345, width: 140, height: 50, rx: 4, fill: '#e2e8f0' },
+    { elType: 'text', x: 1110, y: 378, fontSize: 25, color: '#718096', fontWeight: 'bold', anchor: 'middle', text: '经验要求' },
+    { elType: 'text', x: 1210, y: 378, fontSize: 25, color: '#2d3748', fontWeight: 'bold', key: 'experience', containerWidth: 300, default: '不限' },
 
     // 招聘人数
-    { elType: 'rect', x: 1520, y: 310, width: 120, height: 30, rx: 4, fill: '#e2e8f0' },
-    { elType: 'text', x: 1580, y: 330, fontSize: 12, color: '#718096', anchor: 'middle', text: '招聘人数' },
-    { elType: 'text', x: 1780, y: 330, fontSize: 14, color: '#2d3748', fontWeight: 'bold', anchor: 'end', key: 'recruitCount', containerWidth: 200, default: '若干' },
+    { elType: 'rect', x: 1520, y: 345, width: 140, height: 50, rx: 4, fill: '#e2e8f0' },
+    { elType: 'text', x: 1590, y: 378, fontSize: 25, color: '#718096', fontWeight: 'bold', anchor: 'middle', text: '招聘人数' },
+    { elType: 'text', x: 1740, y: 378, fontSize: 25, color: '#2d3748', fontWeight: 'bold', anchor: 'end', key: 'recruitCount', containerWidth: 200, default: '若干' },
 
     // 分隔线
-    { elType: 'line', x1: 80, y1: 375, x2: 1860, y2: 375, stroke: '#e2e8f0', 'stroke-width': 1 },
+    { elType: 'line', x1: 80, y1: 420, x2: 1860, y2: 420, stroke: '#e2e8f0', 'stroke-width': 1 },
 
     // ===== 职位信息区域 =====
-    { elType: 'rect', x: 80, y: 395, width: 12, height: 35, rx: 6, fill: '#3B82F6' },
-    { elType: 'text', x: 105, y: 420, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '职位信息' },
-    { elType: 'rect', x: 80, y: 440, width: 1720, height: 140, rx: 10, fill: '#F8FAFC', stroke: '#e2e8f0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 105, y: 475, fontSize: 18, color: '#475569', key: 'jobInfo', containerWidth: 1670, containerHeight: 120, lineHeight: 22, minFontSize: 10, default: '职位信息内容' },
+    { elType: 'rect', x: 0, y: 0, width: 12, height: 40, rx: 6, fill: '#3B82F6' },
+    { elType: 'text', x: 105, y: 460, fontSize: 26, color: '#1E3A5F', fontWeight: 'bold', text: '职位信息' },
+    { elType: 'rect', x: 80, y: 480, width: 1720, height: 200, rx: 10, fill: '#F8FAFC', stroke: '#e2e8f0', 'stroke-width': 1 },
+    { elType: 'tspanText', x: 105, y: 520, fontSize: 22, color: '#475569', fontWeight: 'bold', key: 'jobInfo', containerWidth: 1670, containerHeight: 130, lineHeight: 26, minFontSize: 22 },
 
     // ===== 福利待遇区域 =====
-    { elType: 'rect', x: 80, y: 605, width: 12, height: 35, rx: 6, fill: '#ed8936' },
-    { elType: 'text', x: 105, y: 630, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '福利待遇' },
-    { elType: 'rect', x: 80, y: 655, width: 1720, height: 70, rx: 10, fill: '#fffaf0', stroke: '#ed8936', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 105, y: 690, fontSize: 15, color: '#475569', key: 'welfare', containerWidth: 1670, containerHeight: 30, lineHeight: 22, minFontSize: 12, default: '福利待遇内容' },
+    { elType: 'rect', x: 0, y: 0, width: 12, height: 40, rx: 6, fill: '#fffaf0' },
+    { elType: 'text', x: 105, y: 730, fontSize: 26, color: '#1E3A5F', fontWeight: 'bold', text: '福利待遇' },
+    { elType: 'rect', x: 80, y: 750, width: 1720, height: 200, rx: 10, fill: '#fffaf0', stroke: '#fffaf0', 'stroke-width': 1 },
+    { elType: 'tspanText', x: 105, y: 790, fontSize: 22, color: '#475569', fontWeight: 'bold', key: 'welfare', containerWidth: 1670, containerHeight: 130, lineHeight: 26, minFontSize: 22 },
 
-    // ===== 底部联系方式栏 =====
-    { elType: 'rect', x: 80, y: 755, width: 1720, height: 60, rx: 10, fill: 'url(#contactBg)' },
-    { elType: 'text', x: 120, y: 792, fontSize: 18, color: '#FFFFFF', text: '联 系 人：' },
-    { elType: 'text', x: 220, y: 792, fontSize: 18, color: '#FFFFFF', key: 'contactName', default: '联系人' },
-    { elType: 'text', x: 1550, y: 792, fontSize: 18, color: '#FFFFFF', text: '联系电话：' },
-    { elType: 'text', x: 1650, y: 792, fontSize: 18, color: '#FFFFFF', key: 'contactPhone', default: '联系电话' }
+    // ===== 底部联系方式栏 - 移到海报最下方 =====
+    { elType: 'rect', x: 40, y: 980, width: 1840, height: 60, rx: 10, fill: 'url(#contactBg)' },
+    { elType: 'text', x: 160, y: 1020, fontSize: 24, color: '#FFFFFF', text: '联 系 人：', fontWeight: 'bold' },
+    { elType: 'text', x: 280, y: 1020, fontSize: 24, color: '#FFFFFF', key: 'contactName', fontWeight: 'bold' },
+    { elType: 'text', x: 1500, y: 1020, fontSize: 24, color: '#FFFFFF', text: '联系电话：', fontWeight: 'bold' },
+    { elType: 'text', x: 1620, y: 1020, fontSize: 24, color: '#FFFFFF', key: 'contactPhone', fontWeight: 'bold' }
   ]
 }
 
 // 注册模板
 registerTemplate('tech_01', tech01Template)
 
-// ================== 墨绿商务模板定义 ==================
-
-export const tech02Template = {
-  id: 'tech_02',
-  name: '墨绿商务',
-  colorScheme: 'GREEN',
-  canvas: { width: 1920, height: 1080 },
-
-  defs: {
-    greenBg: {
-      type: 'linearGradient',
-      x1: '0%', y1: '0%', x2: '100%', y2: '100%',
-      stops: [
-        { offset: '0%', color: '#1B5E20' },
-        { offset: '100%', color: '#2E7D32' }
-      ]
-    },
-    goldAccent: {
-      type: 'linearGradient',
-      x1: '0%', y1: '0%', x2: '100%', y2: '0%',
-      stops: [
-        { offset: '0%', color: '#FFC107' },
-        { offset: '100%', color: '#FFD54F' }
-      ]
-    }
-  },
-
-  background: {
-    type: 'gradient',
-    gradientId: 'greenBg'
-  },
-
-  elements: [
-    // ===== 顶部标题区域 =====
-    { elType: 'rect', x: 100, y: 40, width: 1720, height: 160, rx: 16, fill: '#FFFFFF' },
-    { elType: 'rect', x: 100, y: 40, width: 1720, height: 6, rx: 3, fill: 'url(#goldAccent)' },
-    { elType: 'text', x: 960, y: 120, fontSize: 64, color: '#1B5E20', anchor: 'middle', fontWeight: 'bold', text: '招 贤 纳 士' },
-    { elType: 'text', x: 960, y: 170, fontSize: 28, color: '#2E7D32', anchor: 'middle', fontFamily: 'Arial', letterSpacing: 8, text: 'JOIN US' },
-
-    // ===== 顶部信息横条 =====
-    { elType: 'rect', x: 100, y: 220, width: 1720, height: 70, rx: 8, fill: '#FFFFFF' },
-    { elType: 'rect', x: 100, y: 220, width: 1720, height: 6, rx: 3, fill: 'url(#greenBg)' },
-
-    // 工作地点
-    { elType: 'rect', x: 120, y: 235, width: 380, height: 40, rx: 6, fill: '#E8F5E9' },
-    { elType: 'text', x: 140, y: 248, fontSize: 11, color: '#666666', text: '工作地点' },
-    { elType: 'text', x: 140, y: 268, fontSize: 14, color: '#1B5E20', fontWeight: 'bold', key: 'location', containerWidth: 340, default: '不限' },
-
-    // 学历要求
-    { elType: 'rect', x: 520, y: 235, width: 380, height: 40, rx: 6, fill: '#E8F5E9' },
-    { elType: 'text', x: 540, y: 248, fontSize: 11, color: '#666666', text: '学历要求' },
-    { elType: 'text', x: 540, y: 268, fontSize: 14, color: '#1B5E20', fontWeight: 'bold', key: 'education', containerWidth: 340, default: '不限' },
-
-    // 经验要求
-    { elType: 'rect', x: 920, y: 235, width: 380, height: 40, rx: 6, fill: '#E8F5E9' },
-    { elType: 'text', x: 940, y: 248, fontSize: 11, color: '#666666', text: '经验要求' },
-    { elType: 'text', x: 940, y: 268, fontSize: 14, color: '#1B5E20', fontWeight: 'bold', key: 'experience', containerWidth: 340, default: '不限' },
-
-    // 招聘人数
-    { elType: 'rect', x: 1320, y: 235, width: 480, height: 40, rx: 6, fill: '#E8F5E9' },
-    { elType: 'text', x: 1340, y: 248, fontSize: 11, color: '#666666', text: '招聘人数' },
-    { elType: 'text', x: 1340, y: 268, fontSize: 14, color: '#1B5E20', fontWeight: 'bold', key: 'recruitCount', containerWidth: 420, default: '若干' },
-
-    // ===== 左侧区域 =====
-    { elType: 'rect', x: 100, y: 310, width: 580, height: 700, rx: 12, fill: '#FFFFFF' },
-
-    // 公司名称
-    { elType: 'text', x: 390, y: 380, fontSize: 22, color: '#1B5E20', anchor: 'middle', key: 'company', default: '公司名称' },
-
-    // 装饰线
-    { elType: 'rect', x: 200, y: 410, width: 380, height: 3, rx: 2, fill: 'url(#goldAccent)' },
-
-    // 职位名称卡片
-    { elType: 'rect', x: 140, y: 450, width: 500, height: 100, rx: 12, fill: '#F1F8E9', stroke: '#2E7D32', 'stroke-width': 2 },
-    { elType: 'text', x: 390, y: 515, fontSize: 36, color: '#1B5E20', anchor: 'middle', fontWeight: 'bold', key: 'jobTitle', containerWidth: 460, default: '职位名称' },
-
-    // 薪资
-    { elType: 'rect', x: 140, y: 580, width: 500, height: 70, rx: 10, fill: 'url(#goldAccent)' },
-    { elType: 'text', x: 390, y: 628, fontSize: 36, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'salary', default: '面议' },
-
-    // 福利待遇
-    { elType: 'text', x: 140, y: 700, fontSize: 18, color: '#1B5E20', fontWeight: 'bold', text: '★ 福利待遇 ★' },
-    { elType: 'rect', x: 140, y: 720, width: 500, height: 80, rx: 8, fill: '#F1F8E9' },
-    { elType: 'tspanText', x: 155, y: 745, fontSize: 14, color: '#37474F', key: 'welfare', containerWidth: 470, containerHeight: 50, lineHeight: 20, minFontSize: 10, default: '福利待遇内容' },
-
-    // ===== 右侧区域 =====
-    { elType: 'rect', x: 700, y: 310, width: 1120, height: 700, rx: 12, fill: '#FFFFFF' },
-    { elType: 'rect', x: 700, y: 310, width: 1120, height: 6, rx: 3, fill: 'url(#greenBg)' },
-
-    // 职位详情标题
-    { elType: 'text', x: 740, y: 380, fontSize: 28, color: '#1B5E20', fontWeight: 'bold', text: '职位详情' },
-    { elType: 'text', x: 740, y: 410, fontSize: 14, color: '#666666', fontFamily: 'Arial', text: 'POSITION DETAILS' },
-    { elType: 'line', x1: 740, y1: 430, x2: 1780, y2: 430, stroke: '#E8F5E9', 'stroke-width': 2 },
-
-    // ===== 职位信息 =====
-    { elType: 'text', x: 740, y: 470, fontSize: 18, color: '#1B5E20', fontWeight: 'bold', text: '职位信息' },
-    { elType: 'rect', x: 740, y: 490, width: 1040, height: 220, rx: 8, fill: '#F1F8E9' },
-    { elType: 'tspanText', x: 755, y: 515, fontSize: 18, color: '#37474F', key: 'jobInfo', containerWidth: 970, containerHeight: 185, lineHeight: 20, minFontSize: 10, default: '职位信息内容' },
-
-    // ===== 联系栏 =====
-    { elType: 'rect', x: 740, y: 740, width: 1040, height: 70, rx: 10, fill: 'url(#greenBg)' },
-    { elType: 'text', x: 820, y: 780, fontSize: 20, color: '#FFFFFF', key: 'contactName', containerWidth: 300, default: '联系人' },
-    { elType: 'text', x: 1200, y: 780, fontSize: 20, color: '#FFC107', key: 'contactPhone', default: '联系电话' },
-
-    // ===== 底部装饰 =====
-    { elType: 'line', x1: 100, y1: 990, x2: 1820, y2: 990, stroke: '#1B5E20', 'stroke-width': 3 }
-  ]
-}
-
-// 注册墨绿模板
-registerTemplate('tech_02', tech02Template)
-
-// ================== 行政专员模板 (template-admin 风格) ==================
+// ================== 蓝白商务模板 (template-admin 风格) ==================
 
 export const adminTemplate = {
   id: 'admin_01',
@@ -608,10 +501,10 @@ export const adminTemplate = {
     { elType: 'rect', x: 0, y: 0, width: 1920, height: 6, fill: 'url(#accentLine)' },
 
     // ===== 公司名称 - 中间最上方 =====
-    { elType: 'text', x: 960, y: 70, fontSize: 48, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'company', containerWidth: 800, default: '公司名称' },
+    { elType: 'text', x: 960, y: 95, fontSize: 56, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'company', containerWidth: 1250, minFontSize: 36, default: '公司名称' },
 
     // 主标题
-    { elType: 'text', x: 960, y: 125, fontSize: 28, color: '#3B82F6', anchor: 'middle', fontFamily: 'Arial', letterSpacing: 4, text: '招贤纳士 · WE ARE HIRING' },
+    { elType: 'text', x: 960, y: 150, fontSize: 28, color: '#3B82F6', anchor: 'middle', fontFamily: 'Arial', letterSpacing: 4, text: '招贤纳士 · WE ARE HIRING' },
 
     // 顶部装饰线
     { elType: 'rect', x: 0, y: 174, width: 1920, height: 6, fill: 'url(#accentLine)' },
@@ -620,64 +513,63 @@ export const adminTemplate = {
     { elType: 'rect', x: 0, y: 0, width: 8, height: 1080, fill: '#3B82F6' },
 
     // ===== 白色主容器 =====
-    { elType: 'rect', x: 40, y: 200, width: 1840, height: 800, rx: 16, fill: '#FFFFFF', stroke: '#E2E8F0', 'stroke-width': 1 },
+    { elType: 'rect', x: 40, y: 230, width: 1840, height: 810, rx: 16, fill: '#FFFFFF', stroke: '#E2E8F0', 'stroke-width': 1 },
 
     // ===== 职位名称 + 薪资 =====
-    { elType: 'text', x: 960, y: 265, fontSize: 36, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'jobTitle', containerWidth: 1400, default: '职位名称' },
-    { elType: 'rect', x: 720, y: 280, width: 480, height: 55, rx: 10, fill: 'url(#salaryBg)' },
-    { elType: 'text', x: 960, y: 320, fontSize: 28, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'salary', default: '面议' },
+    { elType: 'text', x: 80, y: 320, fontSize: 40, color: '#1E3A5F', fontWeight: 'bold', key: 'jobTitle', containerWidth: 1400, default: '职位名称' },
+    { elType: 'rect', x: 1350, y: 285, width: 480, height: 60, rx: 10, fill: 'url(#salaryBg)' },
+    { elType: 'text', x: 1600, y: 325, fontSize: 32, color: '#FFFFFF', anchor: 'middle', fontWeight: 'bold', key: 'salary', default: '面议' },
 
     // ===== 信息标签栏 =====
-    { elType: 'rect', x: 80, y: 360, width: 1720, height: 70, rx: 8, fill: '#F1F8E9' },
+    { elType: 'rect', x: 80, y: 365, width: 1720, height: 90, rx: 8, fill: '#F1F8E9' },
 
     // 工作地点 - 居中
-    { elType: 'rect', x: 200, y: 370, width: 320, height: 50, rx: 8, fill: '#FFFFFF' },
-    { elType: 'text', x: 360, y: 395, fontSize: 12, color: '#64748B', anchor: 'middle', text: '工作地点' },
-    { elType: 'text', x: 360, y: 415, fontSize: 14, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'location', containerWidth: 300, default: '不限' },
+    { elType: 'rect', x: 200, y: 375, width: 320, height: 70, rx: 8, fill: '#FFFFFF' },
+    { elType: 'text', x: 360, y: 405, fontSize: 24, color: '#64748B', anchor: 'middle', fontWeight: 'bold', text: '工作地点' },
+    { elType: 'text', x: 360, y: 435, fontSize: 26, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'location', containerWidth: 300, default: '不限' },
 
     // 学历要求 - 居中
-    { elType: 'rect', x: 560, y: 370, width: 320, height: 50, rx: 8, fill: '#FFFFFF' },
-    { elType: 'text', x: 720, y: 395, fontSize: 12, color: '#64748B', anchor: 'middle', text: '学历要求' },
-    { elType: 'text', x: 720, y: 415, fontSize: 14, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'education', containerWidth: 300, default: '不限' },
+    { elType: 'rect', x: 560, y: 375, width: 320, height: 70, rx: 8, fill: '#FFFFFF' },
+    { elType: 'text', x: 720, y: 405, fontSize: 24, color: '#64748B', anchor: 'middle', fontWeight: 'bold', text: '学历要求' },
+    { elType: 'text', x: 720, y: 435, fontSize: 26, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'education', containerWidth: 300, default: '不限' },
 
     // 经验要求 - 居中
-    { elType: 'rect', x: 920, y: 370, width: 320, height: 50, rx: 8, fill: '#FFFFFF' },
-    { elType: 'text', x: 1080, y: 395, fontSize: 12, color: '#64748B', anchor: 'middle', text: '经验要求' },
-    { elType: 'text', x: 1080, y: 415, fontSize: 14, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'experience', containerWidth: 300, default: '不限' },
+    { elType: 'rect', x: 920, y: 375, width: 320, height: 70, rx: 8, fill: '#FFFFFF' },
+    { elType: 'text', x: 1080, y: 405, fontSize: 24, color: '#64748B', anchor: 'middle', fontWeight: 'bold', text: '经验要求' },
+    { elType: 'text', x: 1080, y: 435, fontSize: 26, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'experience', containerWidth: 300, default: '不限' },
 
     // 招聘人数 - 居中
-    { elType: 'rect', x: 1280, y: 370, width: 320, height: 50, rx: 8, fill: '#FFFFFF' },
-    { elType: 'text', x: 1440, y: 395, fontSize: 12, color: '#64748B', anchor: 'middle', text: '招聘人数' },
-    { elType: 'text', x: 1440, y: 415, fontSize: 14, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'recruitCount', containerWidth: 300, default: '若干' },
+    { elType: 'rect', x: 1280, y: 375, width: 320, height: 70, rx: 8, fill: '#FFFFFF' },
+    { elType: 'text', x: 1440, y: 405, fontSize: 24, color: '#64748B', anchor: 'middle', fontWeight: 'bold', text: '招聘人数' },
+    { elType: 'text', x: 1440, y: 435, fontSize: 26, color: '#1E3A5F', anchor: 'middle', fontWeight: 'bold', key: 'recruitCount', containerWidth: 300, default: '若干' },
 
     // 分隔线
-    { elType: 'line', x1: 80, y1: 455, x2: 1860, y2: 455, stroke: '#E2E8F0', 'stroke-width': 1 },
+    { elType: 'line', x1: 80, y1: 485, x2: 1860, y2: 485, stroke: '#E2E8F0', 'stroke-width': 1 },
 
     // ===== 职位信息区域 =====
-    { elType: 'rect', x: 80, y: 480, width: 8, height: 40, rx: 4, fill: '#3B82F6' },
-    { elType: 'text', x: 105, y: 510, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '职位信息' },
-    { elType: 'rect', x: 80, y: 530, width: 1720, height: 130, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 105, y: 565, fontSize: 18, color: '#475569', key: 'jobInfo', containerWidth: 1670, containerHeight: 100, lineHeight: 22, minFontSize: 10, default: '职位信息内容' },
+    { elType: 'rect', x: 80, y: 510, width: 8, height: 40, rx: 4, fill: '#3B82F6' },
+    { elType: 'text', x: 105, y: 540, fontSize: 32, color: '#1E3A5F', fontWeight: 'bold', text: '职位信息' },
+    { elType: 'rect', x: 80, y: 560, width: 1720, height: 160, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
+    { elType: 'tspanText', x: 105, y: 595, fontSize: 22, color: '#475569', fontWeight: 'bold', key: 'jobInfo', containerWidth: 1670, containerHeight: 120, lineHeight: 26, minFontSize: 22 },
 
     // ===== 福利待遇区域 =====
-    { elType: 'rect', x: 80, y: 685, width: 8, height: 40, rx: 4, fill: '#3B82F6' },
-    { elType: 'text', x: 105, y: 715, fontSize: 22, color: '#1E3A5F', fontWeight: 'bold', text: '福利待遇' },
-    { elType: 'rect', x: 80, y: 735, width: 1720, height: 80, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
-    { elType: 'tspanText', x: 105, y: 770, fontSize: 15, color: '#475569', key: 'welfare', containerWidth: 1670, containerHeight: 40, lineHeight: 22, minFontSize: 12, default: '福利待遇内容' },
+    { elType: 'rect', x: 80, y: 745, width: 8, height: 40, rx: 4, fill: '#3B82F6' },
+    { elType: 'text', x: 105, y: 775, fontSize: 32, color: '#1E3A5F', fontWeight: 'bold', text: '福利待遇' },
+    { elType: 'rect', x: 80, y: 795, width: 1720, height: 160, rx: 10, fill: '#F8FAFC', stroke: '#E2E8F0', 'stroke-width': 1 },
+    { elType: 'tspanText', x: 105, y: 840, fontSize: 22, color: '#475569', fontWeight: 'bold', key: 'welfare', containerWidth: 1670, containerHeight: 120, lineHeight: 26, minFontSize: 22 },
 
-    // ===== 底部联系方式栏（浅色背景）=====
-    { elType: 'rect', x: 80, y: 840, width: 1720, height: 55, rx: 10, fill: '#EFF6FF', stroke: '#3B82F6', 'stroke-width': 1 },
-    { elType: 'text', x: 120, y: 875, fontSize: 16, color: '#1E3A5F', text: '联 系 人：' },
-    { elType: 'text', x: 200, y: 875, fontSize: 16, color: '#1E3A5F', key: 'contactName', default: '联系人' },
-    { elType: 'text', x: 1650, y: 875, fontSize: 16, color: '#1E3A5F', anchor: 'end', text: '联系电话：' },
-    { elType: 'text', x: 1760, y: 875, fontSize: 16, color: '#1E3A5F', anchor: 'end', key: 'contactPhone', default: '联系电话' },
+    // ===== 底部联系方式栏（浅色背景）- 移到最下方 =====
+    { elType: 'text', x: 160, y: 990, fontSize: 24, color: '#1E3A5F', fontWeight: 'bold', text: '联 系 人：' },
+    { elType: 'text', x: 260, y: 990, fontSize: 24, color: '#1E3A5F', key: 'contactName', fontWeight: 'bold' },
+    { elType: 'text', x: 1600, y: 990, fontSize: 24, color: '#1E3A5F', fontWeight: 'bold', anchor: 'end', text: '联系电话：' },
+    { elType: 'text', x: 1760, y: 990, fontSize: 24, color: '#1E3A5F', anchor: 'end', key: 'contactPhone', fontWeight: 'bold' },
 
     // ===== 右侧装饰元素 =====
     { elType: 'circle', cx: 1880, cy: 800, r: 280, fill: '#3B82F6', opacity: 0.08 },
     { elType: 'circle', cx: 1880, cy: 850, r: 180, fill: '#3B82F6', opacity: 0.12 },
 
     // ===== 底部装饰线 =====
-    { elType: 'line', x1: 100, y1: 920, x2: 1820, y2: 920, stroke: '#3B82F6', 'stroke-width': 3, opacity: 0.3 }
+    { elType: 'line', x1: 100, y1: 1010, x2: 1820, y2: 1010, stroke: '#3B82F6', 'stroke-width': 3, opacity: 0.3 }
   ]
 }
 
@@ -739,10 +631,10 @@ export const multi01Template = {
     { elType: 'rect', x: 0, y: 0, width: 1920, height: 6, fill: 'url(#accentGrad)' },
 
     // 公司名称（顶部居中）
-    { elType: 'text', x: 960, y: 70, fontSize: 48, color: '#ffffff', anchor: 'middle', fontWeight: 'bold', key: 'company', default: '公司名称' },
+    { elType: 'text', x: 960, y: 95, fontSize: 56, color: '#ffffff', anchor: 'middle', fontWeight: 'bold', key: 'company', default: '公司名称' },
 
     // 主标题
-    { elType: 'text', x: 960, y: 125, fontSize: 28, color: '#a0aec0', anchor: 'middle', fontFamily: 'Arial', letterSpacing: 4, text: '招贤纳士 · WE ARE HIRING' },
+    { elType: 'text', x: 960, y: 150, fontSize: 28, color: '#a0aec0', anchor: 'middle', fontFamily: 'Arial', letterSpacing: 4, text: '招贤纳士 · WE ARE HIRING' },
 
     // 顶部底部装饰线
     { elType: 'rect', x: 0, y: 174, width: 1920, height: 6, fill: 'url(#accentGrad)' },
@@ -753,50 +645,50 @@ export const multi01Template = {
       itemVar: 'job',
       indexVar: 'index',
       xBase: 40,
-      yBase: 185,
+      yBase: 215,
       colCount: 2,
       colWidth: 920,
-      rowHeight: 225,
+      rowHeight: 255,
       children: [
         // 卡片背景
         { elType: 'rect', x: '{computedX}', y: '{computedY}', width: 920, height: 210, rx: 12, fill: '#ffffff', stroke: '#e2e8f0', 'stroke-width': 1 },
         // 左侧彩色边条
         { elType: 'rect', x: '{computedX}', y: '{computedY}', width: 8, height: 210, rx: 4, fill: 'url(#accentGrad)' },
         // 职位名称
-        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 38}', fontSize: 24, color: '#1a365d', fontWeight: 'bold', key: 'job.jobTitle', containerWidth: 850, default: '职位名称' },
+        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 38}', fontSize: 28, color: '#1a365d', fontWeight: 'bold', key: 'job.jobTitle', containerWidth: 850, default: '职位名称' },
         // 信息栏背景
-        { elType: 'rect', x: '{computedX + 30}', y: '{computedY + 55}', width: 860, height: 36, rx: 6, fill: '#f7fafc' },
+        { elType: 'rect', x: '{computedX + 30}', y: '{computedY + 55}', width: 860, height: 40, rx: 6, fill: '#f7fafc' },
         // 薪资标签
-        { elType: 'text', x: '{computedX + 45}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', fontWeight: 'bold', text: '薪资：' },
-        { elType: 'text', x: '{computedX + 95}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', key: 'job.salary', default: '面议' },
+        { elType: 'text', x: '{computedX + 45}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', text: '薪资：' },
+        { elType: 'text', x: '{computedX + 100}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.salary', default: '面议' },
         // 人数标签
-        { elType: 'text', x: '{computedX + 280}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', fontWeight: 'bold', text: '人数：' },
-        { elType: 'text', x: '{computedX + 325}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', key: 'job.recruitCount', default: '若干' },
+        { elType: 'text', x: '{computedX + 280}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', text: '人数：' },
+        { elType: 'text', x: '{computedX + 350}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.recruitCount', default: '若干' },
         // 工作地标签
-        { elType: 'text', x: '{computedX + 470}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', fontWeight: 'bold', text: '工作地：' },
-        { elType: 'text', x: '{computedX + 535}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', key: 'job.location', default: '不限' },
+        { elType: 'text', x: '{computedX + 470}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', text: '工作地：' },
+        { elType: 'text', x: '{computedX + 560}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.location', default: '不限' },
         // 学历标签
-        { elType: 'text', x: '{computedX + 700}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', fontWeight: 'bold', text: '学历：' },
-        { elType: 'text', x: '{computedX + 750}', y: '{computedY + 78}', fontSize: 13, color: '#2d3748', key: 'job.education', default: '不限' },
+        { elType: 'text', x: '{computedX + 700}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', text: '学历：' },
+        { elType: 'text', x: '{computedX + 780}', y: '{computedY + 82}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.education', default: '不限' },
         // 福利标签
-        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 102}', fontSize: 14, color: '#2d3748', fontWeight: 'bold', text: '★ 福利待遇：' },
-        // 福利内容（加粗，紧邻表头）
-        { elType: 'text', x: '{computedX + 122}', y: '{computedY + 102}', fontSize: 14, color: '#2d3748', fontWeight: 'bold', key: 'job.welfare', containerWidth: 738, default: '面议' },
+        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 128}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', text: '★ 福利待遇：' },
+        // 福利内容
+        { elType: 'text', x: '{computedX + 162}', y: '{computedY + 128}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.welfare', containerWidth: 728 },
         // 职位信息标签
-        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 130}', fontSize: 14, color: '#2d3748', fontWeight: 'bold', text: '★ 职位信息：' },
-        // 职位信息内容（加粗，紧邻表头）
-        { elType: 'tspanText', x: '{computedX + 122}', y: '{computedY + 130}', fontSize: 18, color: '#2d3748', fontWeight: 'bold', key: 'job.jobInfo', containerWidth: 748, containerHeight: 55, lineHeight: 20, minFontSize: 11, default: '职位信息内容' },
+        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 155}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', text: '★ 职位信息：' },
+        // 职位信息内容
+        { elType: 'tspanText', x: '{computedX + 162}', y: '{computedY + 155}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.jobInfo', containerWidth: 738, containerHeight: 55, lineHeight: 22, minFontSize: 12 },
         // 联系人和联系电话（放在卡片底部）
-        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 185}', fontSize: 13, color: '#4a5568', fontWeight: 'bold', text: '联系人：' },
-        { elType: 'text', x: '{computedX + 95}', y: '{computedY + 185}', fontSize: 13, color: '#2d3748', key: 'job.contactName', default: '' },
-        { elType: 'text', x: '{computedX + 200}', y: '{computedY + 185}', fontSize: 13, color: '#4a5568', fontWeight: 'bold', text: '联系电话：' },
-        { elType: 'text', x: '{computedX + 280}', y: '{computedY + 185}', fontSize: 13, color: '#2d3748', key: 'job.contactPhone', default: '' }
+        { elType: 'text', x: '{computedX + 30}', y: '{computedY + 185}', fontSize: 22, color: '#4a5568', fontWeight: 'bold', text: '联系人：' },
+        { elType: 'text', x: '{computedX + 120}', y: '{computedY + 185}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.contactName' },
+        { elType: 'text', x: '{computedX + 200}', y: '{computedY + 185}', fontSize: 22, color: '#4a5568', fontWeight: 'bold', text: '联系电话：' },
+        { elType: 'text', x: '{computedX + 310}', y: '{computedY + 185}', fontSize: 22, color: '#2d3748', fontWeight: 'bold', key: 'job.contactPhone' }
       ]
     },
 
     // ===== 底部装饰 =====
-    { elType: 'rect', x: 0, y: 870, width: 1920, height: 60, fill: '#1a365d' },
-    { elType: 'text', x: 960, y: 905, fontSize: 18, color: '#ffffff', anchor: 'middle', text: '期待您的加入 · WE LOOK FORWARD TO YOUR APPLICATION' }
+    { elType: 'rect', x: 0, y: 1020, width: 1920, height: 60, fill: '#1a365d' },
+    { elType: 'text', x: 960, y: 1055, fontSize: 20, color: '#ffffff', anchor: 'middle', key: 'bottomText', default: '期待您的加入 · WE LOOK FORWARD TO YOUR APPLICATION' }
   ]
 }
 
