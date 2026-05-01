@@ -75,10 +75,12 @@
                   v-model="formData.jobId"
                   placeholder="请选择职位"
                   style="width: 100%"
+                  filterable
+                  :filter-method="filterJob"
                   @change="handleJobChange"
                 >
                   <el-option
-                    v-for="job in jobList"
+                    v-for="job in filteredJobList"
                     :key="job.id"
                     :label="job.jobName"
                     :value="job.id"
@@ -311,7 +313,7 @@
               :row-class-name="({ row }) => batchSelectedJobs.find(j => j.id === row.id) ? 'selected-row' : ''"
             >
               <el-table-column type="selection" width="50" reserve-selection />
-              <el-table-column prop="jobName" label="职位名称" min-width="140" show-overflow-tooltip>
+              <el-table-column prop="jobName" label="职位名称" min-width="180" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span class="job-name-cell">{{ row.jobName }}</span>
                 </template>
@@ -322,8 +324,8 @@
                   <span class="salary-cell">{{ formatSalary(row.salaryMin, row.salaryMax) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="workAddress" label="工作地点" width="100" show-overflow-tooltip />
-              <el-table-column prop="education" label="学历" width="72" />
+              <el-table-column prop="workAddress" label="工作地点" width="320" />
+              <el-table-column prop="education" label="学历" width="80" />
               <el-table-column label="状态" width="82">
                 <template #default="{ row }">
                   <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small" effect="light">
@@ -435,7 +437,7 @@
             <div class="batch-cta-wrap">
               <div class="batch-cta-stat">
                 <div class="cta-stat-item">
-                  <span class="cta-stat-num">{{ batchSelectedJobs.length }}</span>
+                  <span class="cta-stat-num">{{ posterCount }}</span>
                   <span class="cta-stat-label">待生成</span>
                 </div>
                 <div class="cta-stat-divider" />
@@ -452,7 +454,7 @@
               >
                 <el-icon v-if="!batchGenerating"><MagicStick /></el-icon>
                 <el-icon v-else class="btn-loading-icon"><Loading /></el-icon>
-                <span>{{ batchGenerating ? '生成中...' : `批量生成 ${batchSelectedJobs.length} 张` }}</span>
+                <span>{{ batchGenerating ? '生成中...' : `批量生成 ${posterCount} 张` }}</span>
               </button>
               <div class="batch-cta-tip">
                 <el-icon><InfoFilled /></el-icon>
@@ -585,8 +587,15 @@ const batchTemplateList = computed(() => {
 // 是否多岗位模板
 const isMultiTemplate = computed(() => selectedTemplate.value?.id === 'multi_01')
 
+// 多岗位模板每张最多4个岗位，计算需要生成的张数
+const posterCount = computed(() => {
+  if (!isMultiTemplate.value) return batchSelectedJobs.value.length
+  return Math.ceil(batchSelectedJobs.value.length / 4)
+})
+
 // ─── 单张模式：职位列表 & 表单 ───────────────────────────────
 const jobList = ref([])
+const filteredJobList = ref([])
 const formData = reactive({
   jobId: null, title: '', jobTitle: '', company: '', salary: '',
   location: '', education: '', experience: '', recruitCount: '',
@@ -756,8 +765,20 @@ const fetchJobList = async () => {
   try {
     const res = await getJobList({ pageNum: 1, pageSize: 100, status: 1 })
     jobList.value = res.data.records || []
+    filteredJobList.value = jobList.value
   } catch (error) {
     console.error('获取职位列表失败:', error)
+  }
+}
+
+const filterJob = (val) => {
+  if (!val) {
+    filteredJobList.value = jobList.value
+  } else {
+    const query = val.toLowerCase()
+    filteredJobList.value = jobList.value.filter(job =>
+      job.jobName.toLowerCase().includes(query)
+    )
   }
 }
 
@@ -860,25 +881,7 @@ const fetchBatchJobList = async () => {
 }
 
 const handleBatchSelectionChange = (rows) => {
-  // 多岗模板最多选择6个职位
-  if (selectedTemplate.value?.id === 'multi_01') {
-    const currentPageIds = batchJobList.value.map(j => j.id)
-    const alreadySelected = batchSelectedJobs.value.filter(j => !currentPageIds.includes(j.id))
-    const totalAfterSelect = alreadySelected.length + rows.length
-    if (totalAfterSelect > 6) {
-      ElMessage.warning('多岗位海报最多支持6个职位，已超出限制，请减少选择')
-      // 取消超出部分的选中状态
-      nextTick(() => {
-        batchTableRef.value?.clearSelection()
-        const keepCount = Math.max(0, 6 - alreadySelected.length)
-        rows.slice(0, keepCount).forEach(row => {
-          batchTableRef.value?.toggleRowSelection(row, true)
-        })
-      })
-      return
-    }
-  }
-
+  // 多岗模板：超过4个岗位会自动拆分为多张海报，不再限制选择数量
   // 合并跨页选择：先移除当前页中未被选中的，再添加当前页新选中的
   const currentPageIds = batchJobList.value.map(j => j.id)
   const selectedIds = rows.map(j => j.id)
@@ -918,8 +921,8 @@ const buildFormDataFromJob = (job) => ({
   education: job.education || '',
   experience: job.experience || '',
   recruitCount: job.recruitCount || '',
-  jobInfo: job.jobInfo || '',
-  welfare: job.welfare || '',
+  jobInfo: job.jobInfo ?? '',
+  welfare: job.welfare ?? '',
   contactName: job.contactName || '',
   contactPhone: job.contactPhone || ''
 })
@@ -997,12 +1000,8 @@ const handleBatchGenerate = async () => {
 
   const isMultiTemplate = selectedTemplate.value?.id === 'multi_01'
 
-  // 多岗位模板校验：必须同一家公司且最多6个职位
+  // 多岗位模板校验：必须同一家公司
   if (isMultiTemplate) {
-    if (batchSelectedJobs.value.length > 6) {
-      ElMessage.warning('多岗位海报最多支持6个职位')
-      return
-    }
     const companies = [...new Set(batchSelectedJobs.value.map(j => j.company))]
     if (companies.length > 1) {
       ElMessage.warning('多岗位海报只能选择同一家公司的职位，请重新选择')
@@ -1010,43 +1009,49 @@ const handleBatchGenerate = async () => {
     }
   }
 
-  // 多岗位模板：生成一张包含所有岗位的海报
+  // 多岗位模板：每4个岗位生成一张海报
   if (isMultiTemplate) {
-    batchProgressList.value = [{
-      jobId: 'multi',
-      jobName: '多岗位海报',
-      status: 'loading',
+    const chunkSize = 4
+    const chunks = []
+    for (let i = 0; i < batchSelectedJobs.value.length; i += chunkSize) {
+      chunks.push(batchSelectedJobs.value.slice(i, i + chunkSize))
+    }
+    batchProgressList.value = chunks.map((chunk, idx) => ({
+      jobId: `multi-${idx}`,
+      jobName: `多岗位海报（第${idx + 1}张）`,
+      status: 'pending',
       errorMsg: ''
-    }]
+    }))
     batchDone.value = false
     batchGenerating.value = true
     batchProgressVisible.value = true
 
-    try {
-      // 获取所有选中岗位的详情
-      const jobDetails = await Promise.all(
-        batchSelectedJobs.value.map(job => getJobDetail(job.id))
-      )
-      const jobs = jobDetails.map(res => res.data)
-      const svgContent = getSvgForMultiJob(jobs)
+    let successCount = 0
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      batchProgressList.value[i].status = 'loading'
+      try {
+        const jobDetails = await Promise.all(chunk.map(job => getJobDetail(job.id)))
+        const jobs = jobDetails.map(res => res.data)
+        const svgContent = getSvgForMultiJob(jobs)
 
-      await batchCreatePoster({
-        templateId: selectedTemplate.value.id,
-        jobIds: batchSelectedJobs.value.map(j => j.id),
-        posterName: `${batchSelectedJobs.value[0]?.company || '公司名称'}-多岗位招聘`,
-        svgContent
-      })
-      batchProgressList.value[0].status = 'success'
-      batchDone.value = true
-      batchGenerating.value = false
-      ElMessage.success('多岗位海报生成成功')
-    } catch (error) {
-      batchProgressList.value[0].status = 'error'
-      batchProgressList.value[0].errorMsg = error?.message || '生成失败'
-      batchDone.value = true
-      batchGenerating.value = false
-      console.error('多岗位海报生成失败:', error)
+        await batchCreatePoster({
+          templateId: selectedTemplate.value.id,
+          jobIds: chunk.map(j => j.id),
+          posterName: `${batchSelectedJobs.value[0]?.company || '公司名称'}-多岗位招聘（第${i + 1}张）`,
+          svgContent
+        })
+        batchProgressList.value[i].status = 'success'
+        successCount++
+      } catch (error) {
+        batchProgressList.value[i].status = 'error'
+        batchProgressList.value[i].errorMsg = error?.message || '生成失败'
+        console.error(`多岗位海报（第${i + 1}张）生成失败:`, error)
+      }
     }
+    batchDone.value = true
+    batchGenerating.value = false
+    ElMessage.success(`多岗位海报生成完成：成功 ${successCount} 张，失败 ${chunks.length - successCount} 张`)
     return
   }
 
