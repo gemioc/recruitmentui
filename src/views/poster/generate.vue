@@ -19,19 +19,24 @@
                 <span>选择模板</span>
               </div>
             </template>
-            <div class="template-list">
+            <div class="template-selector">
               <div
                 v-for="template in singleTemplateList"
                 :key="template.id"
-                class="template-item"
-                :class="{ active: selectedTemplate?.id === template.id }"
+                class="template-card"
+                :class="{ active: selectedTemplate?.templateId === template.templateId }"
                 @click="selectTemplate(template)"
               >
-                <img v-if="getTemplatePreviewUrl(template)" :src="getTemplatePreviewUrl(template)" :alt="template.templateName" />
-                <div v-else class="template-placeholder" :style="{ background: template.id === 'multi_01' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#e2e8f0' }">
-                  <span class="placeholder-text">{{ template.templateName }}</span>
+                <div class="template-card-header">
+                  <div class="template-color-dot" :style="{ background: getTemplateColor(template.colorScheme) }"></div>
+                  <div class="template-card-info">
+                    <div class="template-card-name">{{ template.templateName }}</div>
+                    <div class="template-card-desc">{{ getTemplateDesc(template.templateId) }}</div>
+                  </div>
+                  <div class="template-card-check" v-if="selectedTemplate?.templateId === template.templateId">
+                    <el-icon><Check /></el-icon>
+                  </div>
                 </div>
-                <div class="template-name">{{ template.templateName }}</div>
               </div>
             </div>
           </el-card>
@@ -43,13 +48,7 @@
             </template>
             <div class="preview-area">
               <div class="preview-wrapper">
-                <object
-                  :data="previewSvgUrl"
-                  type="image/svg+xml"
-                  class="preview-svg"
-                >
-                  <img :src="previewSvgUrl" alt="预览" class="preview-img" />
-                </object>
+                <img :src="previewSvgUrl" alt="预览" class="preview-img" />
               </div>
             </div>
           </el-card>
@@ -215,19 +214,14 @@
           </div>
         </div>
         <div class="bs-line" :class="{ active: batchSelectedJobs.length > 0 }" />
-        <div class="bs-step" :class="{ done: batchSelectedJobs.length > 0 && isMultiTemplate, active: batchSelectedJobs.length > 0 && isMultiTemplate && !customBottomText }">
-          <div class="bs-circle"><el-icon v-if="batchSelectedJobs.length > 0 && isMultiTemplate"><Check /></el-icon><span v-else>3</span></div>
+        <div class="bs-step" :class="{ done: batchSelectedJobs.length > 0 }">
+          <div class="bs-circle">
+            <el-icon v-if="batchSelectedJobs.length > 0"><Check /></el-icon>
+            <span v-else>3</span>
+          </div>
           <div class="bs-text">
             <div class="bs-title">确认配置</div>
-            <div class="bs-desc">{{ isMultiTemplate ? '设置海报样式' : '确认生成配置' }}</div>
-          </div>
-        </div>
-        <div class="bs-line" :class="{ active: batchSelectedJobs.length > 0 && isMultiTemplate }" v-if="isMultiTemplate" />
-        <div class="bs-step" :class="{ active: batchSelectedJobs.length > 0 && isMultiTemplate && !!customBottomText }" v-if="isMultiTemplate">
-          <div class="bs-circle"><span>4</span></div>
-          <div class="bs-text">
-            <div class="bs-title">自定义设置</div>
-            <div class="bs-desc">设置底部标语</div>
+            <div class="bs-desc">确认生成配置</div>
           </div>
         </div>
       </div>
@@ -243,25 +237,24 @@
                 <span class="batch-card-title">选择海报模板</span>
               </div>
             </template>
-            <div class="batch-template-grid">
+            <div class="template-selector">
               <div
                 v-for="template in batchTemplateList"
                 :key="template.id"
-                class="batch-tpl-item"
-                :class="{ active: selectedTemplate?.id === template.id }"
+                class="template-card"
+                :class="{ active: selectedTemplate?.templateId === template.templateId }"
                 @click="selectTemplate(template)"
               >
-                <div class="batch-tpl-img-wrap">
-                  <img v-if="getTemplatePreviewUrl(template)" :src="getTemplatePreviewUrl(template)" :alt="template.templateName" />
-                  <div v-else class="batch-tpl-placeholder" :style="{ background: template.id === 'multi_01' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#e2e8f0' }">
-                    <span class="placeholder-text">{{ template.templateName }}</span>
+                <div class="template-card-header">
+                  <div class="template-color-dot" :style="{ background: getTemplateColor(template.colorScheme) }"></div>
+                  <div class="template-card-info">
+                    <div class="template-card-name">{{ template.templateName }}</div>
+                    <div class="template-card-desc">{{ getTemplateDesc(template.templateId) }}</div>
                   </div>
-                  <div class="batch-tpl-check" v-if="selectedTemplate?.id === template.id">
+                  <div class="template-card-check" v-if="selectedTemplate?.templateId === template.templateId">
                     <el-icon><Check /></el-icon>
                   </div>
-                  <div class="batch-tpl-hover-mask">点击选用</div>
                 </div>
-                <div class="batch-tpl-name">{{ template.templateName }}</div>
               </div>
             </div>
           </el-card>
@@ -411,26 +404,22 @@
               </div>
             </el-card>
 
-            <!-- Step 4: 自定义设置（仅多岗位模板） -->
-            <el-card v-if="isMultiTemplate" shadow="never" class="batch-confirm-card step4-card">
+            <!-- 海报预览 -->
+            <el-card v-if="batchSelectedJobs.length > 0" shadow="never" class="batch-preview-card">
               <template #header>
                 <div class="batch-card-header">
-                  <div class="batch-step-tag step4">STEP 4</div>
-                  <span class="batch-card-title">自定义设置</span>
+                  <div class="batch-step-tag step3">预览</div>
+                  <span class="batch-card-title">海报效果预览</span>
+                  <span class="batch-selected-badge" v-if="isMultiTemplate">
+                    第1张 / 共 {{ posterCount }} 张
+                  </span>
                 </div>
               </template>
-              <el-form label-position="top">
-                <el-form-item label="底部标语">
-                  <el-input
-                    v-model="customBottomText"
-                    type="textarea"
-                    :rows="2"
-                    maxlength="100"
-                    show-word-limit
-                    placeholder="例如：期待您的加入 · WE LOOK FORWARD TO YOUR APPLICATION"
-                  />
-                </el-form-item>
-              </el-form>
+              <div class="preview-area">
+                <div class="preview-wrapper">
+                  <img :src="batchPreviewSvgUrl" alt="预览" class="preview-img" />
+                </div>
+              </div>
             </el-card>
 
             <!-- 生成按钮区 -->
@@ -576,7 +565,7 @@ const customBottomText = ref('')
 
 // 单张模式：过滤掉多岗模板
 const singleTemplateList = computed(() => {
-  return templateList.value.filter(t => t.id !== 'multi_01')
+  return templateList.value.filter(t => t.templateId !== 'multi_01')
 })
 
 // 批量模式：显示全部模板
@@ -585,12 +574,12 @@ const batchTemplateList = computed(() => {
 })
 
 // 是否多岗位模板
-const isMultiTemplate = computed(() => selectedTemplate.value?.id === 'multi_01')
+const isMultiTemplate = computed(() => selectedTemplate.value?.templateId === 'multi_01')
 
-// 多岗位模板每张最多4个岗位，计算需要生成的张数
+// 多岗位模板每张最多5个岗位（5行表格），计算需要生成的张数
 const posterCount = computed(() => {
   if (!isMultiTemplate.value) return batchSelectedJobs.value.length
-  return Math.ceil(batchSelectedJobs.value.length / 4)
+  return Math.ceil(batchSelectedJobs.value.length / 5)
 })
 
 // ─── 单张模式：职位列表 & 表单 ───────────────────────────────
@@ -644,10 +633,124 @@ const batchErrorCount = computed(() =>
   batchProgressList.value.filter(i => i.status === 'error').length
 )
 
-// ─── 预览（单张模式用）────────────────────────────────────────
-const previewSvgUrl = computed(() => {
-  if (!selectedTemplate.value) return ''
-  return buildPreviewSvgUrl()
+// ─── Logo Base64 缓存（解决 Batik 无法加载外部图片的问题）─────
+const logoBase64Cache = ref('')
+const logoReady = ref(false)
+const logoLoadingPromise = ref(null)
+
+const loadLogoBase64 = () => {
+  if (logoBase64Cache.value) return Promise.resolve(logoBase64Cache.value)
+  if (logoLoadingPromise.value) return logoLoadingPromise.value
+
+  logoLoadingPromise.value = new Promise((resolve, reject) => {
+    fetch('/files/templates/icons/recruit-logo.jpg')
+      .then(res => {
+        if (!res.ok) throw new Error('logo not found')
+        return res.blob()
+      })
+      .then(blob => {
+        // 文件是 Windows BMP 格式（扩展名.jpg但内容是BMP）
+        // Batik 无法识别 BMP，需要转换为 PNG
+        // 步骤：blob → Image → canvas → PNG blob → Base64
+        const img = new Image()
+        const url = URL.createObjectURL(blob)
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0)
+          URL.revokeObjectURL(url)
+          canvas.toBlob(blob2 => {
+            if (!blob2) {
+              reject(new Error('Canvas转PNG失败'))
+              return
+            }
+            const reader = new FileReader()
+            reader.onload = () => {
+              logoBase64Cache.value = reader.result // data:image/png;base64,...
+              logoReady.value = true
+              resolve(logoBase64Cache.value)
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(blob2)
+          }, 'image/png')
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          reject(new Error('图片加载失败'))
+        }
+        img.src = url
+      })
+      .catch(err => {
+        console.warn('Logo Base64 加载失败:', err)
+        logoReady.value = true
+        resolve('')
+      })
+  })
+
+  return logoLoadingPromise.value
+}
+
+// 预加载 logo（挂载时触发）
+onMounted(() => {
+  fetchTemplateList()
+  fetchJobList()
+  fetchBatchJobList()
+  loadLogoBase64()
+})
+
+// ─── 批量模式预览 ───────────────────────────────────────────
+// 获取带 logo Base64 的 SVG（预览和生成都需要这个处理）
+const getSvgWithEmbeddedLogo = (svgContent) => {
+  if (!svgContent.includes('/tv-files/templates/icons/recruit-logo.jpg')) return svgContent
+  // 如果 logo 还没加载好，先返回不含 logo 的版本（避免预览白块）
+  if (!logoBase64Cache.value) return svgContent.replace(/href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g, 'href=""')
+  return svgContent.replace(
+    /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
+    `href="${logoBase64Cache.value}"`
+  )
+}
+
+const batchPreviewSvgUrl = computed(() => {
+  if (!selectedTemplate.value || batchSelectedJobs.value.length === 0) return ''
+  // 依赖 customBottomText 以便在标语变化时刷新预览
+  void customBottomText.value
+  try {
+    const chunkSize = isMultiTemplate.value ? 5 : 1
+    const firstChunk = batchSelectedJobs.value.slice(0, chunkSize)
+    if (isMultiTemplate.value) {
+      // 构建预览数据（使用表格行的基础字段）
+      const previewData = {
+        company: firstChunk[0]?.company || '',
+        location: firstChunk[0]?.workAddress || '',
+        contactName: firstChunk[0]?.contactName || formData.contactName || '',
+        contactPhone: firstChunk[0]?.contactPhone || formData.contactPhone || '',
+        welfare: '',
+        jobs: firstChunk.map((job, index) => ({
+          jobTitle: job.jobName || '',
+          salary: formatSalary(job.salaryMin, job.salaryMax),
+          education: job.education || '不限',
+          recruitCount: job.recruitCount || '若干',
+          contactName: '',
+          contactPhone: '',
+          welfare: job.welfare || ''
+        })),
+        bottomText: customBottomText.value || ''
+      }
+      const rawSvg = renderTemplate('multi_01', previewData)
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(getSvgWithEmbeddedLogo(rawSvg))
+    }
+    // 非多岗位模板：逐个预览第一张
+    const job = firstChunk[0]
+    const jobFormData = buildFormDataFromJob(job)
+    const templateId = selectedTemplate.value.templateId || 'tech_01'
+    const rawSvg = renderTemplate(templateId, jobFormData)
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(getSvgWithEmbeddedLogo(rawSvg))
+  } catch (e) {
+    console.error('预览渲染失败:', e)
+    return ''
+  }
 })
 
 // 薪资格式化（处理 min/max 为 0 或 null 的情况）
@@ -706,15 +809,10 @@ const buildPreviewSvgUrl = () => {
   const colorScheme = selectedTemplate.value.colorScheme || 'BLUE'
   if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
     try {
-      const templatePath = selectedTemplate.value.templatePath || ''
-      let templateId = 'tech_01'
-      if (templatePath.includes('admin')) {
-        templateId = 'admin_01'
-      } else if (templatePath.includes('tech_02') || colorScheme === 'GREEN') {
-        templateId = 'tech_02'
-      }
-      const svgContent = renderTemplate(templateId, formData)
-      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent)
+      // 直接使用 templateId（对应 posterTemplateEngine.js 中的注册ID）
+      const templateId = selectedTemplate.value.templateId || 'tech_01'
+      const rawSvg = renderTemplate(templateId, formData)
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(getSvgWithEmbeddedLogo(rawSvg))
     } catch (e) {
       console.error('模板渲染失败:', e)
       return ''
@@ -730,9 +828,10 @@ const fetchTemplateList = async () => {
     const res = await getPosterTemplates()
     let list = res.data || []
     // 如果数据库模板中没有 multi_01，则追加（前端注册的模板）
-    if (!list.find(t => t.id === 'multi_01')) {
+    if (!list.find(t => t.templateId === 'multi_01')) {
       list = [...list, {
-        id: 'multi_01',
+        id: 'multi_01',  // 前端用 templateId 作为标识
+        templateId: 'multi_01',
         templateName: '多岗招聘',
         colorScheme: 'BLUE',
         previewPath: null  // 前端渲染，无需预览图
@@ -752,12 +851,34 @@ const selectTemplate = (template) => {
   selectedTemplate.value = template
 }
 
+// 模板预览图
 const getTemplatePreviewUrl = (template) => {
   if (!template) return ''
   const path = template.previewPath || template.templatePath
   if (!path) return ''
   const fullPath = path.startsWith('/') ? path : '/' + path
   return '/files' + fullPath
+}
+
+// 模板配色方案颜色
+const getTemplateColor = (colorScheme) => {
+  const colors = {
+    'BLUE': '#3B82F6',
+    'GREEN': '#22C55E',
+    'ORANGE': '#F97316',
+    'PURPLE': '#8B5CF6'
+  }
+  return colors[colorScheme] || '#3B82F6'
+}
+
+// 模板描述
+const getTemplateDesc = (templateId) => {
+  const descs = {
+    'tech_01': '深蓝科技风格，适合现代企业',
+    'admin_01': '商务蓝白风格，简洁专业',
+    'multi_01': '多岗位组合展示，节省空间'
+  }
+  return descs[templateId] || ''
 }
 
 // ─── 单张模式：方法 ───────────────────────────────────────────
@@ -815,11 +936,14 @@ const handleGenerate = async () => {
     let svgContent = ''
     const colorScheme = selectedTemplate.value.colorScheme
     if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
-      const templatePath = selectedTemplate.value.templatePath || ''
-      let templateId = 'tech_01'
-      if (templatePath.includes('admin')) templateId = 'admin_01'
-      else if (templatePath.includes('tech_02') || colorScheme === 'GREEN') templateId = 'tech_02'
+      const templateId = selectedTemplate.value.templateId || 'tech_01'
       svgContent = renderTemplate(templateId, formData)
+      // 替换 logo 相对路径为 Base64（解决 Batik 无法加载外部图片的问题）
+      await loadLogoBase64()
+      svgContent = svgContent.replace(
+        /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
+        logoBase64Cache.value ? `href="${logoBase64Cache.value}"` : 'href=""'
+      )
     }
     const res = await generatePoster({
       templateId: selectedTemplate.value.id,
@@ -929,15 +1053,12 @@ const buildFormDataFromJob = (job) => ({
 
 const getSvgForJob = (jobFormData) => {
   // multi_01 模板有自己独立的渲染逻辑（多岗位）
-  if (selectedTemplate.value.id === 'multi_01') {
+  if (selectedTemplate.value.templateId === 'multi_01') {
     return renderTemplate('multi_01', jobFormData)
   }
   const colorScheme = selectedTemplate.value.colorScheme || 'BLUE'
   if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
-    const templatePath = selectedTemplate.value.templatePath || ''
-    let templateId = 'tech_01'
-    if (templatePath.includes('admin')) templateId = 'admin_01'
-    else if (templatePath.includes('tech_02') || colorScheme === 'GREEN') templateId = 'tech_02'
+    const templateId = selectedTemplate.value.templateId || 'tech_01'
     return renderTemplate(templateId, jobFormData)
   }
   // ORANGE 内联 SVG（复用同一函数，临时替换 formData）
@@ -960,20 +1081,18 @@ const buildMultiJobData = (jobs) => {
   const jobsArray = jobs.map(job => ({
     jobTitle: job.jobName || '',
     salary: formatSalary(job.salaryMin, job.salaryMax),
-    location: job.workAddress || '不限',
     education: job.education || '不限',
-    experience: job.experience || '不限',
-    recruitCount: job.recruitCount ? `${job.recruitCount}人` : '若干',
-    welfare: job.welfare || '',
-    jobInfo: job.jobInfo || '',
+    recruitCount: job.recruitCount || '若干',
     contactName: job.contactName || '',
-    contactPhone: job.contactPhone || ''
+    contactPhone: job.contactPhone || '',
+    welfare: job.welfare || ''  // 福利待遇（每行独立显示）
   }))
 
   return {
     company,
     contactName: jobs[0]?.contactName || '',
     contactPhone: jobs[0]?.contactPhone || '',
+    location: jobs[0]?.workAddress || '',
     jobCount,
     totalCount,
     welfare: jobs[0]?.welfare || '',
@@ -998,7 +1117,7 @@ const handleBatchGenerate = async () => {
     return
   }
 
-  const isMultiTemplate = selectedTemplate.value?.id === 'multi_01'
+  const isMultiTemplate = selectedTemplate.value?.templateId === 'multi_01'
 
   // 多岗位模板校验：必须同一家公司
   if (isMultiTemplate) {
@@ -1009,9 +1128,9 @@ const handleBatchGenerate = async () => {
     }
   }
 
-  // 多岗位模板：每4个岗位生成一张海报
+  // 多岗位模板：每5个岗位生成一张海报（5行表格）
   if (isMultiTemplate) {
-    const chunkSize = 4
+    const chunkSize = 5
     const chunks = []
     for (let i = 0; i < batchSelectedJobs.value.length; i += chunkSize) {
       chunks.push(batchSelectedJobs.value.slice(i, i + chunkSize))
@@ -1026,6 +1145,9 @@ const handleBatchGenerate = async () => {
     batchGenerating.value = true
     batchProgressVisible.value = true
 
+    // 预加载 logo Base64（解决 Batik 无法加载外部图片的问题）
+    await loadLogoBase64()
+
     let successCount = 0
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
@@ -1033,7 +1155,12 @@ const handleBatchGenerate = async () => {
       try {
         const jobDetails = await Promise.all(chunk.map(job => getJobDetail(job.id)))
         const jobs = jobDetails.map(res => res.data)
-        const svgContent = getSvgForMultiJob(jobs)
+        let svgContent = getSvgForMultiJob(jobs)
+        // 替换 logo 相对路径为 Base64（Batik 只能处理自包含的 SVG）
+        svgContent = svgContent.replace(
+          /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
+          logoBase64Cache.value ? `href="${logoBase64Cache.value}"` : 'href=""'
+        )
 
         await batchCreatePoster({
           templateId: selectedTemplate.value.id,
@@ -1066,6 +1193,9 @@ const handleBatchGenerate = async () => {
   batchGenerating.value = true
   batchProgressVisible.value = true
 
+  // 预加载 logo Base64
+  await loadLogoBase64()
+
   for (let i = 0; i < batchSelectedJobs.value.length; i++) {
     const job = batchSelectedJobs.value[i]
     batchProgressList.value[i].status = 'loading'
@@ -1074,7 +1204,12 @@ const handleBatchGenerate = async () => {
       const detailRes = await getJobDetail(job.id)
       const jobDetail = detailRes.data
       const jobFormData = buildFormDataFromJob(jobDetail)
-      const svgContent = getSvgForJob(jobFormData)
+      let svgContent = getSvgForJob(jobFormData)
+      // 替换 logo 相对路径为 Base64（Batik 只能处理自包含的 SVG）
+      svgContent = svgContent.replace(
+        /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
+        logoBase64Cache.value ? `href="${logoBase64Cache.value}"` : 'href=""'
+      )
 
       await generatePoster({
         templateId: selectedTemplate.value.id,
@@ -1108,12 +1243,6 @@ const goToPosterList = () => {
   router.push('/poster/list')
 }
 
-// ─── 初始化 ───────────────────────────────────────────────────
-onMounted(() => {
-  fetchTemplateList()
-  fetchJobList()
-  fetchBatchJobList()
-})
 
 // 组件从 keep-alive 缓存激活时：恢复勾选状态
 onActivated(() => {
@@ -1185,56 +1314,69 @@ watch(batchJobList, () => {
     text-overflow: ellipsis;
   }
 
-  // 模板网格
-  .template-list {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+  // 模板选择器
+  .template-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 
-    .template-item {
-      border: 2px solid #dcdfe6;
-      border-radius: 8px;
-      padding: 10px;
+    .template-card {
+      border: 2px solid #e4e7ed;
+      border-radius: 10px;
+      padding: 16px 20px;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.25s;
 
-      &:hover { border-color: #409eff; }
+      &:hover {
+        border-color: #409eff;
+        background: #f5f9ff;
+      }
+
       &.active {
         border-color: #409eff;
-        box-shadow: 0 0 10px rgba(64, 158, 255, 0.3);
+        background: linear-gradient(135deg, #ecf5ff 0%, #f0f7ff 100%);
+        box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
       }
 
-      img {
-        width: 100%;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 4px;
-      }
-
-      .template-placeholder {
-        width: 100%;
-        height: 80px;
-        border-radius: 4px;
+      .template-card-header {
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 14px;
 
-        .placeholder-text {
-          font-size: 14px;
-          font-weight: 600;
-          color: #fff;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        .template-color-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          flex-shrink: 0;
         }
-      }
 
-      .template-name {
-        text-align: center;
-        margin-top: 8px;
-        font-size: 13px;
-        color: #606266;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        .template-card-info {
+          flex: 1;
+
+          .template-card-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #303133;
+          }
+
+          .template-card-desc {
+            font-size: 12px;
+            color: #909399;
+            margin-top: 2px;
+          }
+        }
+
+        .template-card-check {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #409eff;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+        }
       }
     }
   }
@@ -1365,11 +1507,6 @@ watch(batchJobList, () => {
 
       &.step2 { background: linear-gradient(135deg, #409eff 0%, #36cfc9 100%); }
       &.step3 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-      &.step4 { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-
-    .step4-card {
-      margin-top: 12px;
-    }
     }
 
     .batch-card-title {
@@ -1399,100 +1536,6 @@ watch(batchJobList, () => {
   // ─── 批量模式：模板选择 ───────────────────────────────────────
   .batch-layout {
     .batch-template-card { margin-bottom: 16px; }
-
-    .batch-template-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-
-      .batch-tpl-item {
-        cursor: pointer;
-        border-radius: 10px;
-        border: 2px solid #ebeef5;
-        overflow: hidden;
-        transition: all 0.25s;
-
-        &:hover {
-          border-color: #667eea;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.15);
-
-          .batch-tpl-hover-mask { opacity: 1; }
-        }
-
-        &.active {
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        .batch-tpl-img-wrap {
-          position: relative;
-          overflow: hidden;
-
-          img {
-            width: 100%;
-            height: 90px;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.25s;
-          }
-
-          .batch-tpl-placeholder {
-            width: 100%;
-            height: 90px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            .placeholder-text {
-              font-size: 14px;
-              font-weight: 600;
-              color: #fff;
-              text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            }
-          }
-
-          .batch-tpl-check {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #667eea;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-          }
-
-          .batch-tpl-hover-mask {
-            position: absolute;
-            inset: 0;
-            background: rgba(102, 126, 234, 0.6);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s;
-          }
-        }
-
-        .batch-tpl-name {
-          padding: 8px 10px;
-          font-size: 12px;
-          color: #606266;
-          text-align: center;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-      }
-    }
 
     // 表格美化
     .batch-job-card {
@@ -1682,6 +1725,64 @@ watch(batchJobList, () => {
           color: #67c23a;
           font-size: 18px;
           flex-shrink: 0;
+        }
+      }
+    }
+
+    // 海报预览卡片
+    .batch-preview-card {
+      .batch-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .batch-step-tag {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          padding: 2px 8px;
+          border-radius: 4px;
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: #fff;
+        }
+
+        .batch-card-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #303133;
+          flex: 1;
+        }
+
+        .batch-selected-badge {
+          font-size: 12px;
+          background: #ecf5ff;
+          color: #409eff;
+          padding: 2px 10px;
+          border-radius: 20px;
+          font-weight: 500;
+        }
+      }
+
+      .preview-area {
+        display: flex;
+        justify-content: center;
+        padding: 12px;
+        background: #f5f7fa;
+        border-radius: 8px;
+        overflow: auto;
+
+        .preview-wrapper {
+          width: 100%;
+          max-width: 480px;
+          background: #fff;
+          border-radius: 6px;
+          overflow: hidden;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+
+          .preview-svg, .preview-img {
+            width: 100%;
+            display: block;
+          }
         }
       }
     }
