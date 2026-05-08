@@ -337,12 +337,15 @@ function renderTspanText(el, data) {
              font-family="${el.fontFamily || 'Microsoft YaHei, sans-serif'}"
              font-size="${result.fontSize}"
              font-weight="${el.fontWeight || 'normal'}"
-             ${hasAnchor ? `text-anchor="${anchor}"` : ''}></text>`
+             fill="${el.color || '#000'}"
+             text-anchor="${anchor}"></text>`
   }
 
+  const lineHeightPx = el.lineHeight || 22
+  // 计算dy：多行文本整体垂直居中，第一行从中心向上偏移 (N-1)/2 * lineHeight
   const tspans = result.lines.map((line, index) => {
-    const dy = index === 0 ? 0 : (el.lineHeight || 22)
-    return `<tspan x="${el.x}" dy="${dy}" ${hasAnchor ? `text-anchor="${anchor}"` : ''}>${escapeXml(line)}</tspan>`
+    const dy = (index - (result.lines.length - 1) / 2) * lineHeightPx
+    return `<tspan x="${el.x}" dy="${dy}" text-anchor="${anchor}">${escapeXml(line)}</tspan>`
   }).join('')
 
   return `<text x="${el.x}" y="${el.y}"
@@ -350,7 +353,7 @@ function renderTspanText(el, data) {
            font-size="${result.fontSize}"
            font-weight="${el.fontWeight || 'normal'}"
            fill="${el.color || '#000'}"
-           ${hasAnchor ? `text-anchor="${anchor}"` : ''}>${tspans}</text>`
+           text-anchor="${anchor}">${tspans}</text>`
 }
 
 // ================== 蓝色商务模板定义 (template-business 风格) ==================
@@ -669,7 +672,7 @@ export const multi01Template = {
       rowHeight: 130,
       children: [
         // ✅ 岗位名称：100% 居中，不偏右
-        { elType: 'text', x: 110, y: '{computedY + 65}', fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', anchor: 'middle', dominantBaseline: 'middle', key: 'job.jobTitle', containerWidth: 270, default: '' },
+        { elType: 'tspanText', x: 50, y: '{computedY + 20}', fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', anchor: 'middle', dominantBaseline: 'top', key: 'job.jobTitle', containerWidth: 230, containerHeight: 130, lineHeight: 55, maxLines: 2, overflow: 'ellipsis', textAlign: 'center', default: '' },
 
         // 招聘人数
         { elType: 'text', x: 320, y: '{computedY + 65}', fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', anchor: 'middle', dominantBaseline: 'middle', key: 'job.recruitCount', containerWidth: 150, default: '' },
@@ -681,17 +684,17 @@ export const multi01Template = {
         { elType: 'text', x: 720, y: '{computedY + 65}', fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', anchor: 'middle', dominantBaseline: 'middle', key: 'job.education', containerWidth: 200, default: '' },
 
         // 福利待遇
-        { elType: 'tspanText', x: 830, y: '{computedY + 32}', fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', anchor: 'start', key: 'job.welfare', containerWidth: 990, containerHeight: 130, lineHeight: 30, minFontSize: 22, overflow: 'hidden' }
+        { elType: 'tspanText', x: 880, y: '{computedY + 65}', fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', anchor: 'start', dominantBaseline: 'center', key: 'job.welfare', containerWidth: 940, containerHeight: 130, lineHeight: 48, maxLines: 4, overflow: 'hidden', default: '' }
       ]
     },
 
     // ===== 底部信息栏 =====
-    { elType: 'text', x: 60, y: 1020, fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'normal', text: '工作地点：' },
-    { elType: 'text', x: 210, y: 1020, fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', key: 'location', containerWidth: 600, default: '' },
-    { elType: 'text', x: 960, y: 1020, fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'normal', text: '联系人：' },
-    { elType: 'text', x: 1072, y: 1020, fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', key: 'contactName', containerWidth: 300, default: '' },
-    { elType: 'text', x: 1450, y: 1020, fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'normal', text: '联系电话：' },
-    { elType: 'text', x: 1605, y: 1020, fontSize: 30, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', key: 'contactPhone', containerWidth: 300, default: '' }
+    { elType: 'text', x: 60, y: 1020, fontSize: 36, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'bold', text: '工作地点：' },
+    { elType: 'text', x: 225, y: 1020, fontSize: 36, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'bold', key: 'location', containerWidth: 600, default: '' },
+    { elType: 'text', x: 960, y: 1020, fontSize: 36, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'bold', text: '联系人：' },
+    { elType: 'text', x: 1086, y: 1020, fontSize: 36, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'bold', key: 'contactName', containerWidth: 300, default: '' },
+    { elType: 'text', x: 1450, y: 1020, fontSize: 36, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'bold', text: '联系电话：' },
+    { elEl: 'text', x: 1620, y: 1020, fontSize: 36, fontFamily: '仿宋, FangSong, STFangsong, serif', color: '#61c5f2', fontWeight: 'bold', key: 'contactPhone', containerWidth: 300, default: '' }
   ]
 }
 

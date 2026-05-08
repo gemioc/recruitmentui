@@ -95,6 +95,21 @@ export function batchCreatePoster(data) {
 }
 
 /**
+ * 上传PNG海报（前端html2canvas渲染后上传）
+ * @param {string} pngBase64 - PNG Base64（不带 data:image/png;base64, 前缀）
+ * @param {string} posterName - 海报名称
+ * @param {number|string} templateId - 模板ID
+ * @param {number[]} jobIds - 关联的职位ID列表
+ */
+export function uploadPngPoster(pngBase64, posterName, templateId, jobIds) {
+  return request({
+    url: '/posters/upload-png',
+    method: 'post',
+    data: { pngBase64, posterName, templateId, jobIds }
+  })
+}
+
+/**
  * 删除海报
  * @param {number} id - 海报ID
  */

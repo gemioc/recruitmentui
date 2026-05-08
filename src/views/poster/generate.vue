@@ -47,8 +47,17 @@
               <span>海报预览</span>
             </template>
             <div class="preview-area">
-              <div class="preview-wrapper">
-                <img :src="previewSvgUrl" alt="预览" class="preview-img" />
+              <!-- single_01 使用 HTML 模板 iframe 预览 -->
+              <div v-if="selectedTemplate?.templateId === 'single_01'" class="preview-iframe-wrap">
+                <iframe
+                  :srcdoc="singlePreviewHtmlContentForInline || singlePreviewHtmlContent"
+                  class="preview-iframe-inline"
+                  sandbox="allow-same-origin"
+                ></iframe>
+              </div>
+              <!-- 其他模板 SVG 预览 -->
+              <div v-else-if="selectedTemplate" class="preview-wrapper">
+                <img :src="singlePreviewSvgUrl" alt="预览" class="preview-img" />
               </div>
             </div>
           </el-card>
@@ -405,19 +414,79 @@
             </el-card>
 
             <!-- 海报预览 -->
-            <el-card v-if="batchSelectedJobs.length > 0" shadow="never" class="batch-preview-card">
+            <el-card v-if="batchSelectedJobs.length > 0 && isMultiTemplate" shadow="never" class="batch-preview-card">
               <template #header>
                 <div class="batch-card-header">
                   <div class="batch-step-tag step3">预览</div>
                   <span class="batch-card-title">海报效果预览</span>
-                  <span class="batch-selected-badge" v-if="isMultiTemplate">
-                    第1张 / 共 {{ posterCount }} 张
+                  <div class="poster-page-nav" v-if="posterCount > 1">
+                    <el-icon class="nav-btn" :class="{ disabled: multi02CurrentPosterIndex === 0 }" @click="multi02CurrentPosterIndex--"><ArrowLeft /></el-icon>
+                    <span class="page-info">{{ multi02CurrentPosterIndex + 1 }} / {{ posterCount }}</span>
+                    <el-icon class="nav-btn" :class="{ disabled: multi02CurrentPosterIndex >= posterCount - 1 }" @click="multi02CurrentPosterIndex++"><ArrowRight /></el-icon>
+                  </div>
+                </div>
+              </template>
+              <div class="preview-area">
+                <div class="preview-iframe-wrap">
+                  <iframe
+                    :srcdoc="batchPreviewHtmlContentForInline"
+                    class="preview-iframe-inline"
+                    sandbox="allow-same-origin"
+                  ></iframe>
+                </div>
+              </div>
+              <!-- multi_02 横向岗位选择标签 -->
+              <div v-if="selectedTemplate?.templateId === 'multi_02'" class="job-tags-row">
+                <el-tooltip content="点击标签切换右侧详情展示；当职位超过7个时请使用左右箭头切换海报选择其他职位" placement="top" effect="light">
+                  <span class="tags-label">
+                    展示详情
+                    <el-icon class="info-icon"><InfoFilled /></el-icon>
                   </span>
+                </el-tooltip>
+                <div class="tags-list">
+                  <span
+                    v-for="(job, idx) in multi02CurrentChunk"
+                    :key="job.id"
+                    class="job-tag"
+                    :class="{ active: multi02CurrentSelectedIndex === idx }"
+                    @click="multi02CurrentSelectedIndex = idx"
+                  >
+                    <span class="tag-num">{{ multi02CurrentPosterIndex * 7 + idx + 1 }}</span>
+                    <span class="tag-name">{{ job.jobName }}</span>
+                  </span>
+                </div>
+              </div>
+            </el-card>
+
+            <el-card v-if="batchSelectedJobs.length > 0 && !isMultiTemplate && selectedTemplate?.templateId !== 'single_01'" shadow="never" class="batch-preview-card">
+              <template #header>
+                <div class="batch-card-header">
+                  <div class="batch-step-tag step3">预览</div>
+                  <span class="batch-card-title">海报效果预览</span>
                 </div>
               </template>
               <div class="preview-area">
                 <div class="preview-wrapper">
                   <img :src="batchPreviewSvgUrl" alt="预览" class="preview-img" />
+                </div>
+              </div>
+            </el-card>
+
+            <!-- single_01 HTML预览 -->
+            <el-card v-if="batchSelectedJobs.length > 0 && selectedTemplate?.templateId === 'single_01'" shadow="never" class="batch-preview-card">
+              <template #header>
+                <div class="batch-card-header">
+                  <div class="batch-step-tag step3">预览</div>
+                  <span class="batch-card-title">海报效果预览</span>
+                </div>
+              </template>
+              <div class="preview-area">
+                <div class="preview-iframe-wrap">
+                  <iframe
+                    :srcdoc="batchPreviewHtmlContentForInline"
+                    class="preview-iframe-inline"
+                    sandbox="allow-same-origin"
+                  ></iframe>
                 </div>
               </div>
             </el-card>
@@ -529,7 +598,8 @@
         </div>
       </template>
     </el-dialog>
-  </div>
+
+      </div>
 </template>
 
 <script setup>
@@ -546,12 +616,15 @@ import {
   CircleCloseFilled,
   Loading,
   Check,
-  List
+  List,
+  View
 } from '@element-plus/icons-vue'
 import { getJobList, getJobDetail } from '@/api/job'
-import { getPosterTemplates, generatePoster, batchCreatePoster } from '@/api/poster'
+import { getPosterTemplates, generatePoster, batchCreatePoster, uploadPngPoster } from '@/api/poster'
 import { renderTemplate } from '@/utils/posterTemplateEngine'
 import '@/utils/posterTemplateEngine'
+import { multi01HtmlTemplate, multi02HtmlTemplate, single01HtmlTemplate } from '@/utils/posterTemplateEngineHtml'
+import html2canvas from 'html2canvas'
 
 const router = useRouter()
 
@@ -565,7 +638,7 @@ const customBottomText = ref('')
 
 // 单张模式：过滤掉多岗模板
 const singleTemplateList = computed(() => {
-  return templateList.value.filter(t => t.templateId !== 'multi_01')
+  return templateList.value.filter(t => !['multi_01', 'multi_02'].includes(t.templateId))
 })
 
 // 批量模式：显示全部模板
@@ -574,12 +647,34 @@ const batchTemplateList = computed(() => {
 })
 
 // 是否多岗位模板
-const isMultiTemplate = computed(() => selectedTemplate.value?.templateId === 'multi_01')
+const isMultiTemplate = computed(() => ['multi_01', 'multi_02'].includes(selectedTemplate.value?.templateId))
 
-// 多岗位模板每张最多5个岗位（5行表格），计算需要生成的张数
+// 多岗位模板每张海报的岗位数：multi_01=4行，multi_02=7行
 const posterCount = computed(() => {
   if (!isMultiTemplate.value) return batchSelectedJobs.value.length
-  return Math.ceil(batchSelectedJobs.value.length / 5)
+  const chunkSize = selectedTemplate.value?.templateId === 'multi_02' ? 7 : 4
+  return Math.ceil(batchSelectedJobs.value.length / chunkSize)
+})
+
+// multi_02 当前海报的7个岗位
+const multi02CurrentChunk = computed(() => {
+  const chunkSize = 7
+  const start = multi02CurrentPosterIndex.value * chunkSize
+  return batchSelectedJobs.value.slice(start, start + chunkSize)
+})
+
+// multi_02 当前海报选中的岗位索引（用于右侧详情展示）
+const multi02CurrentSelectedIndex = computed({
+  get: () => {
+    const indices = multi02SelectedIndices.value
+    return indices[multi02CurrentPosterIndex.value] ?? 0
+  },
+  set: (val) => {
+    while (multi02SelectedIndices.value.length <= multi02CurrentPosterIndex.value) {
+      multi02SelectedIndices.value.push(0)
+    }
+    multi02SelectedIndices.value[multi02CurrentPosterIndex.value] = val
+  }
 })
 
 // ─── 单张模式：职位列表 & 表单 ───────────────────────────────
@@ -598,6 +693,7 @@ const formRules = {
 const generating = ref(false)
 const resultVisible = ref(false)
 const resultImage = ref('')
+
 
 // ─── 批量模式：职位表格 ───────────────────────────────────────
 const batchTableRef = ref(null)
@@ -618,6 +714,9 @@ const persistBatchSelection = () => {
 const batchGenerating = ref(false)
 const batchProgressVisible = ref(false)
 const batchProgressList = ref([])
+const multi02SelectedIndex = ref(0)
+const multi02SelectedIndices = ref([])
+const multi02CurrentPosterIndex = ref(0)
 const batchDone = ref(false)
 const batchDoneCount = computed(() =>
   batchProgressList.value.filter(i => i.status === 'success' || i.status === 'error').length
@@ -714,34 +813,13 @@ const getSvgWithEmbeddedLogo = (svgContent) => {
 
 const batchPreviewSvgUrl = computed(() => {
   if (!selectedTemplate.value || batchSelectedJobs.value.length === 0) return ''
-  // 依赖 customBottomText 以便在标语变化时刷新预览
   void customBottomText.value
   try {
-    const chunkSize = isMultiTemplate.value ? 5 : 1
+    const chunkSize = isMultiTemplate.value ? 4 : 1
     const firstChunk = batchSelectedJobs.value.slice(0, chunkSize)
-    if (isMultiTemplate.value) {
-      // 构建预览数据（使用表格行的基础字段）
-      const previewData = {
-        company: firstChunk[0]?.company || '',
-        location: firstChunk[0]?.workAddress || '',
-        contactName: firstChunk[0]?.contactName || formData.contactName || '',
-        contactPhone: firstChunk[0]?.contactPhone || formData.contactPhone || '',
-        welfare: '',
-        jobs: firstChunk.map((job, index) => ({
-          jobTitle: job.jobName || '',
-          salary: formatSalary(job.salaryMin, job.salaryMax),
-          education: job.education || '不限',
-          recruitCount: job.recruitCount || '若干',
-          contactName: '',
-          contactPhone: '',
-          welfare: job.welfare || ''
-        })),
-        bottomText: customBottomText.value || ''
-      }
-      const rawSvg = renderTemplate('multi_01', previewData)
-      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(getSvgWithEmbeddedLogo(rawSvg))
+    if (isMultiTemplate.value || selectedTemplate.value.templateId === 'single_01') {
+      return '' // 多岗位和single_01使用HTML预览
     }
-    // 非多岗位模板：逐个预览第一张
     const job = firstChunk[0]
     const jobFormData = buildFormDataFromJob(job)
     const templateId = selectedTemplate.value.templateId || 'tech_01'
@@ -752,6 +830,105 @@ const batchPreviewSvgUrl = computed(() => {
     return ''
   }
 })
+
+// 单张模式 single_01 预览内容（基于 formData.jobId）
+const singlePreviewHtmlContent = computed(() => {
+  if (!selectedTemplate.value || selectedTemplate.value.templateId !== 'single_01') return ''
+  void customBottomText.value
+  try {
+    const htmlData = {
+      company: formData.company || '',
+      jobs: [{
+        jobTitle: formData.jobTitle || '',
+        salary: formData.salary || '',
+        education: formData.education || '不限',
+        recruitCount: formData.recruitCount || '若干',
+        welfare: formData.welfare || '',
+        jobInfo: formData.jobInfo || ''
+      }],
+      location: formData.location || '',
+      contactName: formData.contactName || '',
+      contactPhone: formData.contactPhone || '',
+      logoBase64: logoBase64Cache.value || '',
+      selectedIndex: 0
+    }
+    return single01HtmlTemplate(htmlData)
+  } catch (e) {
+    console.error('single_01预览渲染失败:', e)
+    return ''
+  }
+})
+
+// 单张模式 HTML 内嵌预览（注入缩放CSS）
+const singlePreviewHtmlContentForInline = computed(() => {
+  if (!singlePreviewHtmlContent.value) return ''
+  const inlineStyle = `<style>
+    html, body { width: 1936px !important; height: 1096px !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+    body { transform: scale(0.248) !important; transform-origin: 0 0 !important; }
+  </style>`
+  return singlePreviewHtmlContent.value.replace('</head>', inlineStyle + '</head>')
+})
+
+// 单张模式 SVG 预览URL
+const singlePreviewSvgUrl = computed(() => {
+  if (!selectedTemplate.value || selectedTemplate.value.templateId === 'single_01') return ''
+  try {
+    const templateId = selectedTemplate.value.templateId || 'tech_01'
+    const rawSvg = renderTemplate(templateId, formData)
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(getSvgWithEmbeddedLogo(rawSvg))
+  } catch (e) {
+    console.error('单张预览渲染失败:', e)
+    return ''
+  }
+})
+
+// 多岗位和单岗位 HTML 预览内容
+const batchPreviewHtmlContent = computed(() => {
+  if (!selectedTemplate.value || batchSelectedJobs.value.length === 0) return ''
+  if (!isMultiTemplate.value && selectedTemplate.value.templateId !== 'single_01') return ''
+  void customBottomText.value
+  try {
+    const templateId = selectedTemplate.value.templateId
+    const chunkSize = templateId === 'multi_02' ? 7 : 4
+    const pageOffset = templateId === 'multi_02' ? multi02CurrentPosterIndex.value * chunkSize : 0
+    const chunk = batchSelectedJobs.value.slice(pageOffset, pageOffset + chunkSize)
+    const htmlData = {
+      company: chunk[0]?.company || '',
+      jobs: chunk.map(job => ({
+        jobTitle: job.jobName || '',
+        salary: formatSalary(job.salaryMin, job.salaryMax),
+        education: job.education || '不限',
+        recruitCount: job.recruitCount || '若干',
+        welfare: job.welfare || '',
+        jobInfo: job.jobInfo || ''
+      })),
+      location: chunk[0]?.workAddress || '',
+      contactName: chunk[0]?.contactName || '',
+      contactPhone: chunk[0]?.contactPhone || '',
+      logoBase64: logoBase64Cache.value || '',
+      selectedIndex: templateId === 'multi_02' ? multi02CurrentSelectedIndex.value : 0
+    }
+    if (templateId === 'single_01') {
+      return single01HtmlTemplate(htmlData)
+    }
+    return templateId === 'multi_02' ? multi02HtmlTemplate(htmlData) : multi01HtmlTemplate(htmlData)
+  } catch (e) {
+    console.error('HTML预览渲染失败:', e)
+    return ''
+  }
+})
+
+// 内嵌预览的HTML（注入缩放CSS，适配480px宽度）
+const batchPreviewHtmlContentForInline = computed(() => {
+  if (!batchPreviewHtmlContent.value) return ''
+  // 480px容器 / 1936px内容 ≈ 0.248
+  const inlineStyle = `<style>
+    html, body { width: 1936px !important; height: 1096px !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+    body { transform: scale(0.248) !important; transform-origin: 0 0 !important; }
+  </style>`
+  return batchPreviewHtmlContent.value.replace('</head>', inlineStyle + '</head>')
+})
+
 
 // 薪资格式化（处理 min/max 为 0 或 null 的情况）
 const formatSalary = (min, max) => {
@@ -837,9 +1014,31 @@ const fetchTemplateList = async () => {
         previewPath: null  // 前端渲染，无需预览图
       }]
     }
+    // 如果数据库模板中没有 single_01，则追加（前端注册的模板）
+    if (!list.find(t => t.templateId === 'single_01')) {
+      list = [...list, {
+        id: 'single_01',
+        templateId: 'single_01',
+        templateName: '单岗位招聘',
+        colorScheme: 'BLUE',
+        previewPath: null
+      }]
+    }
     templateList.value = list
-    if (templateList.value.length > 0 && !selectedTemplate.value) {
-      selectTemplate(templateList.value[0])
+    // 根据当前模式默认选中第一个模板
+    if (!selectedTemplate.value) {
+      if (mode.value === 'single') {
+        // 单张模式默认选中 single_01
+        const single01 = list.find(t => t.templateId === 'single_01')
+        if (single01) {
+          selectTemplate(single01)
+        } else {
+          const firstSingle = singleTemplateList.value[0]
+          if (firstSingle) selectTemplate(firstSingle)
+        }
+      } else {
+        if (templateList.value.length > 0) selectTemplate(templateList.value[0])
+      }
     }
   } catch (error) {
     console.error('获取模板列表失败:', error)
@@ -876,7 +1075,8 @@ const getTemplateDesc = (templateId) => {
   const descs = {
     'tech_01': '深蓝科技风格，适合现代企业',
     'admin_01': '商务蓝白风格，简洁专业',
-    'multi_01': '多岗位组合展示，节省空间'
+    'multi_01': '多岗位组合展示，4行表格',
+    'multi_02': '多岗位招聘，7行表格，大容量'
   }
   return descs[templateId] || ''
 }
@@ -933,28 +1133,68 @@ const handleGenerate = async () => {
   }
   generating.value = true
   try {
-    let svgContent = ''
     const colorScheme = selectedTemplate.value.colorScheme
-    if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
+    // single_01 使用 html2canvas 渲染 HTML 模板生成 PNG
+    if (selectedTemplate.value.templateId === 'single_01') {
+      await loadLogoBase64()
+      const htmlContent = single01HtmlTemplate({
+        company: formData.company || '',
+        jobs: [{
+          jobTitle: formData.jobTitle || '',
+          salary: formData.salary || '',
+          education: formData.education || '不限',
+          recruitCount: formData.recruitCount || '若干',
+          welfare: formData.welfare || '',
+          jobInfo: formData.jobInfo || ''
+        }],
+        location: formData.location || '',
+        contactName: formData.contactName || '',
+        contactPhone: formData.contactPhone || '',
+        logoBase64: logoBase64Cache.value || ''
+      })
+      // 创建隐藏容器渲染
+      const container = document.createElement('div')
+      container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1920px;height:1080px;overflow:hidden;'
+      container.innerHTML = htmlContent
+      document.body.appendChild(container)
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        const images = container.querySelectorAll('img')
+        await Promise.all([...images].map(img => {
+          if (img.complete) return Promise.resolve()
+          return new Promise(resolve => { img.onload = resolve; img.onerror = resolve })
+        }))
+        const canvas = await html2canvas(container, {
+          width: 1920, height: 1080, scale: 1,
+          useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false
+        })
+        const pngBase64 = canvas.toDataURL('image/png', 1.0).replace(/^data:image\/\w+;base64,/, '')
+        const res = await uploadPngPoster(pngBase64, formData.title || '海报_' + formData.jobTitle, selectedTemplate.value.id, [formData.jobId])
+        resultImage.value = '/files' + (res.data?.filePath || res.data)
+        resultVisible.value = true
+        ElMessage.success('海报生成成功')
+      } finally {
+        document.body.removeChild(container)
+      }
+    } else if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
       const templateId = selectedTemplate.value.templateId || 'tech_01'
-      svgContent = renderTemplate(templateId, formData)
-      // 替换 logo 相对路径为 Base64（解决 Batik 无法加载外部图片的问题）
+      let svgContent = renderTemplate(templateId, formData)
       await loadLogoBase64()
       svgContent = svgContent.replace(
         /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
         logoBase64Cache.value ? `href="${logoBase64Cache.value}"` : 'href=""'
       )
+      const res = await generatePoster({
+        templateId: selectedTemplate.value.id,
+        jobId: formData.jobId,
+        posterName: formData.title || '海报_' + formData.jobTitle,
+        svgContent
+      })
+      const filePath = res.data.filePath || res.data
+      resultImage.value = filePath.startsWith('/') ? filePath : '/files/' + filePath
+      resultVisible.value = true
+      ElMessage.success('海报生成成功')
     }
-    const res = await generatePoster({
-      templateId: selectedTemplate.value.id,
-      jobId: formData.jobId,
-      posterName: formData.title || '海报_' + formData.jobTitle,
-      svgContent
-    })
-    const filePath = res.data.filePath || res.data
-    resultImage.value = filePath.startsWith('/') ? '/files' + filePath : '/files/' + filePath
-    resultVisible.value = true
-    ElMessage.success('海报生成成功')
   } catch (error) {
     console.error('生成海报失败:', error)
   } finally {
@@ -1069,42 +1309,88 @@ const getSvgForJob = (jobFormData) => {
   return svg
 }
 
-// 构建多岗位海报数据
-const buildMultiJobData = (jobs) => {
-  // 公司名称：取第一个岗位的公司名称
-  const company = jobs[0]?.company || '公司名称'
-  // 统计信息
-  const jobCount = jobs.length
-  const totalCount = jobs.reduce((sum, j) => sum + (parseInt(j.recruitCount) || 0), 0)
 
-  // 构建 jobs 数组供模板使用（动态长度，不填充空位）
+/**
+ * 使用 HTML+CSS 方式生成多岗位海报
+ * @param {Array} jobs - 职位详情数组
+ * @param {string} posterName - 海报名称
+ * @param {string} templateId - 模板ID
+ * @returns {Promise<string>} 生成的海报文件路径
+ */
+const generateHtmlPoster = async (jobs, posterName, templateId) => {
+  // 构建数据
+  const company = jobs[0]?.company || '公司名称'
   const jobsArray = jobs.map(job => ({
     jobTitle: job.jobName || '',
     salary: formatSalary(job.salaryMin, job.salaryMax),
     education: job.education || '不限',
     recruitCount: job.recruitCount || '若干',
-    contactName: job.contactName || '',
-    contactPhone: job.contactPhone || '',
-    welfare: job.welfare || ''  // 福利待遇（每行独立显示）
+    welfare: job.welfare || '',
+    jobInfo: job.jobInfo || ''
   }))
 
-  return {
+  const htmlData = {
     company,
+    jobs: jobsArray,
+    location: jobs[0]?.workAddress || '',
     contactName: jobs[0]?.contactName || '',
     contactPhone: jobs[0]?.contactPhone || '',
-    location: jobs[0]?.workAddress || '',
-    jobCount,
-    totalCount,
-    welfare: jobs[0]?.welfare || '',
-    jobs: jobsArray,
-    bottomText: customBottomText.value || ''
+    logoBase64: logoBase64Cache.value || '',
+    selectedIndex: templateId === 'multi_02' ? multi02SelectedIndex.value : 0
   }
-}
 
-// 多岗位海报 SVG 生成
-const getSvgForMultiJob = (jobs) => {
-  const multiData = buildMultiJobData(jobs)
-  return renderTemplate('multi_01', multiData)
+  // 生成 HTML
+  if (templateId === 'single_01') {
+    var htmlContent = single01HtmlTemplate(htmlData)
+  } else {
+    htmlContent = templateId === 'multi_02' ? multi02HtmlTemplate(htmlData) : multi01HtmlTemplate(htmlData)
+  }
+
+  // 创建隐藏容器
+  const container = document.createElement('div')
+  container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1920px;height:1080px;overflow:hidden;'
+  container.innerHTML = htmlContent
+  document.body.appendChild(container)
+
+  try {
+    // 等待图片加载
+    await new Promise(resolve => setTimeout(resolve, 200))
+    const images = container.querySelectorAll('img')
+    await Promise.all([...images].map(img => {
+      if (img.complete) return Promise.resolve()
+      return new Promise(resolve => {
+        img.onload = resolve
+        img.onerror = resolve
+      })
+    }))
+
+    // 使用 html2canvas 渲染
+    const canvas = await html2canvas(container, {
+      width: 1920,
+      height: 1080,
+      scale: 1,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    })
+
+    // 转为 Base64 PNG（去掉前缀）
+    const pngBase64 = canvas.toDataURL('image/png', 1.0).replace(/^data:image\/\w+;base64,/, '')
+
+    // 上传到后端
+    const res = await uploadPngPoster(
+      pngBase64,
+      posterName,
+      selectedTemplate.value?.id,
+      jobs.map(j => j.id)
+    )
+
+    return '/files' + (res.data?.filePath || res.data)
+  } finally {
+    // 清理
+    document.body.removeChild(container)
+  }
 }
 
 const handleBatchGenerate = async () => {
@@ -1117,7 +1403,8 @@ const handleBatchGenerate = async () => {
     return
   }
 
-  const isMultiTemplate = selectedTemplate.value?.templateId === 'multi_01'
+  const templateId = selectedTemplate.value?.templateId
+  const isMultiTemplate = ['multi_01', 'multi_02'].includes(templateId)
 
   // 多岗位模板校验：必须同一家公司
   if (isMultiTemplate) {
@@ -1128,9 +1415,9 @@ const handleBatchGenerate = async () => {
     }
   }
 
-  // 多岗位模板：每5个岗位生成一张海报（5行表格）
+  // 多岗位模板：每张海报的岗位数 multi_01=4行，multi_02=7行
   if (isMultiTemplate) {
-    const chunkSize = 5
+    const chunkSize = templateId === 'multi_02' ? 7 : 4
     const chunks = []
     for (let i = 0; i < batchSelectedJobs.value.length; i += chunkSize) {
       chunks.push(batchSelectedJobs.value.slice(i, i + chunkSize))
@@ -1145,7 +1432,7 @@ const handleBatchGenerate = async () => {
     batchGenerating.value = true
     batchProgressVisible.value = true
 
-    // 预加载 logo Base64（解决 Batik 无法加载外部图片的问题）
+    // 预加载 logo Base64
     await loadLogoBase64()
 
     let successCount = 0
@@ -1155,19 +1442,10 @@ const handleBatchGenerate = async () => {
       try {
         const jobDetails = await Promise.all(chunk.map(job => getJobDetail(job.id)))
         const jobs = jobDetails.map(res => res.data)
-        let svgContent = getSvgForMultiJob(jobs)
-        // 替换 logo 相对路径为 Base64（Batik 只能处理自包含的 SVG）
-        svgContent = svgContent.replace(
-          /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
-          logoBase64Cache.value ? `href="${logoBase64Cache.value}"` : 'href=""'
-        )
+        const posterName = `${batchSelectedJobs.value[0]?.company || '公司名称'}-多岗位招聘（第${i + 1}张）`
 
-        await batchCreatePoster({
-          templateId: selectedTemplate.value.id,
-          jobIds: chunk.map(j => j.id),
-          posterName: `${batchSelectedJobs.value[0]?.company || '公司名称'}-多岗位招聘（第${i + 1}张）`,
-          svgContent
-        })
+        // 使用 HTML+CSS 方式生成海报
+        await generateHtmlPoster(jobs, posterName, templateId)
         batchProgressList.value[i].status = 'success'
         successCount++
       } catch (error) {
@@ -1270,14 +1548,32 @@ watch(batchProgressVisible, (val) => {
   }
 })
 
-// 监听模式切换到批量模式时，恢复表格勾选状态
-watch(mode, (newMode) => {
+// 切换模板时重置multi_02选中索引
+watch(() => selectedTemplate.value?.templateId, (newId) => {
+  if (newId !== 'multi_02') {
+    multi02SelectedIndex.value = 0
+  } else {
+    multi02SelectedIndices.value = []
+    multi02CurrentPosterIndex.value = 0
+  }
+})
+
+// 监听模式切换
+watch(mode, (newMode, oldMode) => {
   if (newMode === 'batch') {
     // 重置页码和搜索条件，确保加载第一页数据
     batchJobQuery.pageNum = 1
     batchJobQuery.keyword = ''
     batchJobQuery.status = null
     fetchBatchJobList()
+  } else if (newMode === 'single') {
+    // 如果当前选中的模板不适合单张模式，自动切换到 single_01
+    if (selectedTemplate.value && ['multi_01', 'multi_02'].includes(selectedTemplate.value.templateId)) {
+      const single01 = templateList.value.find(t => t.templateId === 'single_01')
+      if (single01) {
+        selectTemplate(single01)
+      }
+    }
   }
 })
 
@@ -1388,19 +1684,38 @@ watch(batchJobList, () => {
     .preview-area {
       display: flex;
       justify-content: center;
-      padding: 20px;
+      padding: 12px;
       background: #f5f7fa;
       border-radius: 8px;
       overflow: auto;
 
       .preview-wrapper {
         width: 100%;
-        max-width: 640px;
+        max-width: 480px;
+        height: 272px;
         background: #fff;
-        border-radius: 8px;
+        border-radius: 6px;
         overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        cursor: pointer;
 
-        .preview-svg, .preview-img { width: 100%; display: block; }
+        .preview-svg, .preview-img { width: 100%; height: 100%; display: block; border: none; object-fit: contain; }
+      }
+
+      .preview-iframe-wrap {
+        cursor: pointer;
+        width: 480px;
+        height: 272px;
+      }
+
+      .preview-iframe-inline {
+        width: 480px;
+        height: 272px;
+        border: 2px solid #61c5f2;
+        border-radius: 4px;
+        display: block;
+        background: #fff;
+        cursor: pointer;
       }
     }
   }
@@ -1761,6 +2076,27 @@ watch(batchJobList, () => {
           border-radius: 20px;
           font-weight: 500;
         }
+
+        .poster-page-nav {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .nav-btn {
+            cursor: pointer;
+            font-size: 16px;
+            color: #61c5f2;
+            &:hover { color: #3a9ade; }
+            &:disabled { color: #c0c4cc; cursor: not-allowed; }
+          }
+
+          .page-info {
+            font-size: 13px;
+            color: #606266;
+            min-width: 50px;
+            text-align: center;
+          }
+        }
       }
 
       .preview-area {
@@ -1782,6 +2118,138 @@ watch(batchJobList, () => {
           .preview-svg, .preview-img {
             width: 100%;
             display: block;
+            object-fit: contain;
+          }
+        }
+
+        .preview-placeholder {
+          width: 100%;
+          max-width: 480px;
+          height: 270px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: #fff;
+          border: 2px dashed #61c5f2;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          .el-icon {
+            font-size: 48px;
+            color: #61c5f2;
+          }
+
+          span {
+            font-size: 14px;
+            color: #61c5f2;
+            font-weight: 500;
+          }
+
+          &:hover {
+            background: #f0f9ff;
+            border-style: solid;
+          }
+        }
+
+        .preview-iframe-inline {
+          width: 480px;
+          height: 272px;
+          border: 2px solid #61c5f2;
+          border-radius: 4px;
+          display: block;
+          background: #fff;
+        }
+
+        .preview-iframe-wrap {
+          cursor: pointer;
+          width: 480px;
+          height: 272px;
+        }
+
+        .job-tags-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: linear-gradient(135deg, #f8faff 0%, #f0f7fc 100%);
+          border-top: 1px solid #e8f4fc;
+
+          .tags-label {
+            font-size: 12px;
+            color: #61c5f2;
+            font-weight: 600;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #e8f7fc;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #b8e2f8;
+          }
+
+          .tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+
+          .job-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #e0e8f0;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 12px;
+            color: #606266;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          }
+
+          .job-tag:hover {
+            border-color: #61c5f2;
+            color: #61c5f2;
+            box-shadow: 0 2px 8px rgba(97,197,242,0.2);
+            transform: translateY(-1px);
+          }
+
+          .job-tag.active {
+            background: linear-gradient(135deg, #61c5f2 0%, #3a9ade 100%);
+            border-color: #61c5f2;
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(97,197,242,0.35);
+            transform: translateY(-1px);
+          }
+
+          .tag-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: #909399;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .job-tag.active .tag-num {
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+          }
+
+          .tag-name {
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
         }
       }
@@ -1862,6 +2330,29 @@ watch(batchJobList, () => {
 
         .btn-loading-icon {
           animation: spin 1s linear infinite;
+        }
+      }
+
+      .batch-preview-btn {
+        width: 100%;
+        height: 48px;
+        border-radius: 10px;
+        border: 2px solid rgba(255,255,255,0.5);
+        background: transparent;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+        margin-top: 12px;
+
+        &:hover {
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.8);
         }
       }
 
@@ -2037,5 +2528,89 @@ watch(batchJobList, () => {
 .result-container {
   text-align: center;
   .result-image { max-width: 100%; border-radius: 8px; }
+}
+</style>
+
+<!-- test styles for job-tags-row (non-scoped) -->
+<style>
+.job-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #f8faff 0%, #f0f7fc 100%);
+  border-top: 1px solid #e8f4fc;
+}
+.tags-label {
+  font-size: 12px;
+  color: #61c5f2;
+  font-weight: 600;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #e8f7fc;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid #b8e2f8;
+  cursor: help;
+}
+.info-icon {
+  font-size: 12px;
+  color: #61c5f2;
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.job-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e0e8f0;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 12px;
+  color: #606266;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.job-tag:hover {
+  border-color: #61c5f2;
+  color: #61c5f2;
+  box-shadow: 0 2px 8px rgba(97,197,242,0.2);
+  transform: translateY(-1px);
+}
+.job-tag.active {
+  background: linear-gradient(135deg, #61c5f2 0%, #3a9ade 100%) !important;
+  border-color: #61c5f2 !important;
+  color: #fff !important;
+  box-shadow: 0 3px 10px rgba(97,197,242,0.35) !important;
+  transform: translateY(-1px);
+}
+.tag-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #909399;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.job-tag.active .tag-num {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+}
+.tag-name {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
