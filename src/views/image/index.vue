@@ -88,15 +88,12 @@
       <el-table :data="imageList" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="imageName" label="图片名称" min-width="180" />
-        <el-table-column label="缩略图" width="100">
+        <el-table-column label="图片" width="100">
           <template #default="{ row }">
-            <el-image
+            <img
               v-if="row.filePath"
               :src="getImageUrl(row)"
-              fit="cover"
-              style="width: 60px; height: 40px; border-radius: 4px;"
-              :preview-src-list="[getImageUrl(row)]"
-              :hide-on-click-modal="true"
+              style="width: 60px; height: 40px; border-radius: 4px; object-fit: cover;"
             />
             <span v-else>-</span>
           </template>
@@ -195,13 +192,7 @@
     <!-- 预览弹窗 -->
     <el-dialog v-model="previewDialogVisible" title="图片预览" width="800px">
       <div class="image-preview" v-if="previewImage">
-        <el-image
-          :src="getImageUrl(previewImage)"
-          fit="contain"
-          style="width: 100%; max-height: 500px;"
-          :preview-src-list="[getImageUrl(previewImage)]"
-          :hide-on-click-modal="true"
-        />
+        <img :src="getImageUrl(previewImage)" style="width: 100%; max-height: 500px; object-fit: contain;" />
         <div class="image-info">
           <p><strong>图片名称：</strong>{{ previewImage.imageName }}</p>
           <p><strong>文件大小：</strong>{{ formatFileSize(previewImage.fileSize) }}</p>
@@ -513,6 +504,12 @@ onActivated(() => {
     background: #f5f7fa;
     border-radius: 8px;
     p { margin: 8px 0; }
+  }
+}
+
+:deep(.el-dialog) {
+  .el-dialog__body {
+    padding: 20px;
   }
 }
 </style>
