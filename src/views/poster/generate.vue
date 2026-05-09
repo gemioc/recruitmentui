@@ -48,7 +48,7 @@
             </template>
             <div class="preview-area">
               <!-- single_01 使用 HTML 模板 iframe 预览 -->
-              <div v-if="selectedTemplate?.templateId === 'single_01'" class="preview-iframe-wrap">
+              <div v-if="selectedTemplate?.templateId === 'single_01' || selectedTemplate?.templateId === 'single_01_blue'" class="preview-iframe-wrap">
                 <iframe
                   :srcdoc="singlePreviewHtmlContentForInline || singlePreviewHtmlContent"
                   class="preview-iframe-inline"
@@ -247,23 +247,57 @@
               </div>
             </template>
             <div class="template-selector">
-              <div
-                v-for="template in batchTemplateList"
-                :key="template.id"
-                class="template-card"
-                :class="{ active: selectedTemplate?.templateId === template.templateId }"
-                @click="selectTemplate(template)"
-              >
-                <div class="template-card-header">
-                  <div class="template-color-dot" :style="{ background: getTemplateColor(template.colorScheme) }"></div>
-                  <div class="template-card-info">
-                    <div class="template-card-name">{{ template.templateName }}</div>
-                    <div class="template-card-desc">{{ getTemplateDesc(template.templateId) }}</div>
-                  </div>
-                  <div class="template-card-check" v-if="selectedTemplate?.templateId === template.templateId">
-                    <el-icon><Check /></el-icon>
-                  </div>
+              <div class="template-group">
+                <div class="template-group-title">
+                  <span class="group-dot white"></span>
+                  白底蓝字
                 </div>
+                <el-row :gutter="10">
+                  <el-col :span="12" v-for="template in whiteTemplateList" :key="template.id">
+                    <div
+                      class="template-card"
+                      :class="{ active: selectedTemplate?.templateId === template.templateId }"
+                      @click="selectTemplate(template)"
+                    >
+                      <div class="template-card-header">
+                        <div class="template-color-dot" style="background: #61c5f2;"></div>
+                        <div class="template-card-info">
+                          <div class="template-card-name">{{ template.templateName }}</div>
+                          <div class="template-card-desc">{{ getTemplateDesc(template.templateId) }}</div>
+                        </div>
+                        <div class="template-card-check" v-if="selectedTemplate?.templateId === template.templateId">
+                          <el-icon><Check /></el-icon>
+                        </div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+              <div class="template-group">
+                <div class="template-group-title">
+                  <span class="group-dot blue"></span>
+                  深蓝底白字
+                </div>
+                <el-row :gutter="10">
+                  <el-col :span="12" v-for="template in blueTemplateList" :key="template.id">
+                    <div
+                      class="template-card"
+                      :class="{ active: selectedTemplate?.templateId === template.templateId }"
+                      @click="selectTemplate(template)"
+                    >
+                      <div class="template-card-header">
+                        <div class="template-color-dot" style="background: #1a3a5c;"></div>
+                        <div class="template-card-info">
+                          <div class="template-card-name">{{ template.templateName }}</div>
+                          <div class="template-card-desc">{{ getTemplateDesc(template.templateId) }}</div>
+                        </div>
+                        <div class="template-card-check" v-if="selectedTemplate?.templateId === template.templateId">
+                          <el-icon><Check /></el-icon>
+                        </div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
               </div>
             </div>
           </el-card>
@@ -458,7 +492,7 @@
               </div>
             </el-card>
 
-            <el-card v-if="batchSelectedJobs.length > 0 && !isMultiTemplate && selectedTemplate?.templateId !== 'single_01'" shadow="never" class="batch-preview-card">
+            <el-card v-if="batchSelectedJobs.length > 0 && !isMultiTemplate && selectedTemplate?.templateId !== 'single_01' && selectedTemplate?.templateId !== 'single_01_blue'" shadow="never" class="batch-preview-card">
               <template #header>
                 <div class="batch-card-header">
                   <div class="batch-step-tag step3">预览</div>
@@ -472,8 +506,8 @@
               </div>
             </el-card>
 
-            <!-- single_01 HTML预览 -->
-            <el-card v-if="batchSelectedJobs.length > 0 && selectedTemplate?.templateId === 'single_01'" shadow="never" class="batch-preview-card">
+            <!-- single_01 / single_01_blue HTML预览 -->
+            <el-card v-if="batchSelectedJobs.length > 0 && (selectedTemplate?.templateId === 'single_01' || selectedTemplate?.templateId === 'single_01_blue')" shadow="never" class="batch-preview-card">
               <template #header>
                 <div class="batch-card-header">
                   <div class="batch-step-tag step3">预览</div>
@@ -623,7 +657,7 @@ import { getJobList, getJobDetail } from '@/api/job'
 import { getPosterTemplates, generatePoster, batchCreatePoster, uploadPngPoster } from '@/api/poster'
 import { renderTemplate } from '@/utils/posterTemplateEngine'
 import '@/utils/posterTemplateEngine'
-import { multi01HtmlTemplate, multi02HtmlTemplate, single01HtmlTemplate } from '@/utils/posterTemplateEngineHtml'
+import { multi01HtmlTemplate, multi02HtmlTemplate, single01HtmlTemplate, multi01BlueHtmlTemplate, single01BlueHtmlTemplate, multi02BlueHtmlTemplate } from '@/utils/poster/index.js'
 import html2canvas from 'html2canvas'
 
 const router = useRouter()
@@ -638,7 +672,7 @@ const customBottomText = ref('')
 
 // 单张模式：过滤掉多岗模板
 const singleTemplateList = computed(() => {
-  return templateList.value.filter(t => !['multi_01', 'multi_02'].includes(t.templateId))
+  return templateList.value.filter(t => !['multi_01', 'multi_02', 'multi_01_blue', 'multi_02_blue'].includes(t.templateId))
 })
 
 // 批量模式：显示全部模板
@@ -646,13 +680,23 @@ const batchTemplateList = computed(() => {
   return templateList.value
 })
 
-// 是否多岗位模板
-const isMultiTemplate = computed(() => ['multi_01', 'multi_02'].includes(selectedTemplate.value?.templateId))
+// 白底模板列表（左侧）
+const whiteTemplateList = computed(() => {
+  return templateList.value.filter(t => !t.templateId.endsWith('_blue'))
+})
 
-// 多岗位模板每张海报的岗位数：multi_01=4行，multi_02=7行
+// 深蓝底模板列表（右侧）
+const blueTemplateList = computed(() => {
+  return templateList.value.filter(t => t.templateId.endsWith('_blue'))
+})
+
+// 是否多岗位模板
+const isMultiTemplate = computed(() => ['multi_01', 'multi_02', 'multi_01_blue', 'multi_02_blue'].includes(selectedTemplate.value?.templateId))
+
+// 多岗位模板每张海报的岗位数：multi_01=4行，multi_02/multi_02_blue=7行
 const posterCount = computed(() => {
   if (!isMultiTemplate.value) return batchSelectedJobs.value.length
-  const chunkSize = selectedTemplate.value?.templateId === 'multi_02' ? 7 : 4
+  const chunkSize = selectedTemplate.value?.templateId === 'multi_02' || selectedTemplate.value?.templateId === 'multi_02_blue' ? 7 : 4
   return Math.ceil(batchSelectedJobs.value.length / chunkSize)
 })
 
@@ -817,13 +861,13 @@ const batchPreviewSvgUrl = computed(() => {
   try {
     const chunkSize = isMultiTemplate.value ? 4 : 1
     const firstChunk = batchSelectedJobs.value.slice(0, chunkSize)
-    if (isMultiTemplate.value || selectedTemplate.value.templateId === 'single_01') {
+    const tmplId = selectedTemplate.value?.templateId
+    if (isMultiTemplate.value || tmplId === 'single_01') {
       return '' // 多岗位和single_01使用HTML预览
     }
     const job = firstChunk[0]
     const jobFormData = buildFormDataFromJob(job)
-    const templateId = selectedTemplate.value.templateId || 'tech_01'
-    const rawSvg = renderTemplate(templateId, jobFormData)
+    const rawSvg = renderTemplate(tmplId || 'tech_01', jobFormData)
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(getSvgWithEmbeddedLogo(rawSvg))
   } catch (e) {
     console.error('预览渲染失败:', e)
@@ -831,9 +875,9 @@ const batchPreviewSvgUrl = computed(() => {
   }
 })
 
-// 单张模式 single_01 预览内容（基于 formData.jobId）
+// 单张模式 single_01 / single_01_blue 预览内容（基于 formData.jobId）
 const singlePreviewHtmlContent = computed(() => {
-  if (!selectedTemplate.value || selectedTemplate.value.templateId !== 'single_01') return ''
+  if (!selectedTemplate.value || (selectedTemplate.value.templateId !== 'single_01' && selectedTemplate.value.templateId !== 'single_01_blue')) return ''
   void customBottomText.value
   try {
     const htmlData = {
@@ -852,9 +896,11 @@ const singlePreviewHtmlContent = computed(() => {
       logoBase64: logoBase64Cache.value || '',
       selectedIndex: 0
     }
-    return single01HtmlTemplate(htmlData)
+    return selectedTemplate.value.templateId === 'single_01_blue'
+      ? single01BlueHtmlTemplate(htmlData)
+      : single01HtmlTemplate(htmlData)
   } catch (e) {
-    console.error('single_01预览渲染失败:', e)
+    console.error('单张预览渲染失败:', e)
     return ''
   }
 })
@@ -885,12 +931,12 @@ const singlePreviewSvgUrl = computed(() => {
 // 多岗位和单岗位 HTML 预览内容
 const batchPreviewHtmlContent = computed(() => {
   if (!selectedTemplate.value || batchSelectedJobs.value.length === 0) return ''
-  if (!isMultiTemplate.value && selectedTemplate.value.templateId !== 'single_01') return ''
+  if (!isMultiTemplate.value && selectedTemplate.value.templateId !== 'single_01' && selectedTemplate.value.templateId !== 'single_01_blue') return ''
   void customBottomText.value
   try {
     const templateId = selectedTemplate.value.templateId
-    const chunkSize = templateId === 'multi_02' ? 7 : 4
-    const pageOffset = templateId === 'multi_02' ? multi02CurrentPosterIndex.value * chunkSize : 0
+    const chunkSize = (templateId === 'multi_02' || templateId === 'multi_02_blue') ? 7 : 4
+    const pageOffset = (templateId === 'multi_02' || templateId === 'multi_02_blue') ? multi02CurrentPosterIndex.value * chunkSize : 0
     const chunk = batchSelectedJobs.value.slice(pageOffset, pageOffset + chunkSize)
     const htmlData = {
       company: chunk[0]?.company || '',
@@ -906,12 +952,21 @@ const batchPreviewHtmlContent = computed(() => {
       contactName: chunk[0]?.contactName || '',
       contactPhone: chunk[0]?.contactPhone || '',
       logoBase64: logoBase64Cache.value || '',
-      selectedIndex: templateId === 'multi_02' ? multi02CurrentSelectedIndex.value : 0
+      selectedIndex: (templateId === 'multi_02' || templateId === 'multi_02_blue') ? multi02CurrentSelectedIndex.value : 0
     }
     if (templateId === 'single_01') {
       return single01HtmlTemplate(htmlData)
     }
-    return templateId === 'multi_02' ? multi02HtmlTemplate(htmlData) : multi01HtmlTemplate(htmlData)
+    if (templateId === 'single_01_blue') {
+      return single01BlueHtmlTemplate(htmlData)
+    }
+    if (templateId === 'multi_01_blue') {
+      return multi01BlueHtmlTemplate(htmlData)
+    }
+    if (templateId === 'multi_02_blue') {
+      return multi02BlueHtmlTemplate(htmlData)
+    }
+    return (templateId === 'multi_02' || templateId === 'multi_02_blue') ? multi02HtmlTemplate(htmlData) : multi01HtmlTemplate(htmlData)
   } catch (e) {
     console.error('HTML预览渲染失败:', e)
     return ''
@@ -1007,11 +1062,10 @@ const fetchTemplateList = async () => {
     // 如果数据库模板中没有 multi_01，则追加（前端注册的模板）
     if (!list.find(t => t.templateId === 'multi_01')) {
       list = [...list, {
-        id: 'multi_01',  // 前端用 templateId 作为标识
+        id: 'multi_01',
         templateId: 'multi_01',
-        templateName: '多岗招聘',
         colorScheme: 'BLUE',
-        previewPath: null  // 前端渲染，无需预览图
+        previewPath: null
       }]
     }
     // 如果数据库模板中没有 single_01，则追加（前端注册的模板）
@@ -1019,12 +1073,55 @@ const fetchTemplateList = async () => {
       list = [...list, {
         id: 'single_01',
         templateId: 'single_01',
-        templateName: '单岗位招聘',
         colorScheme: 'BLUE',
         previewPath: null
       }]
     }
-    templateList.value = list
+    // 如果数据库模板中没有 multi_01_blue，则追加（深蓝底白字版本）
+    if (!list.find(t => t.templateId === 'multi_01_blue')) {
+      list = [...list, {
+        id: 'multi_01_blue',
+        templateId: 'multi_01_blue',
+        colorScheme: 'BLUE',
+        previewPath: null
+      }]
+    }
+    // 如果数据库模板中没有 single_01_blue，则追加（深蓝底白字版本）
+    if (!list.find(t => t.templateId === 'single_01_blue')) {
+      list = [...list, {
+        id: 'single_01_blue',
+        templateId: 'single_01_blue',
+        colorScheme: 'BLUE',
+        previewPath: null
+      }]
+    }
+    // 如果数据库模板中没有 multi_02_blue，则追加（深蓝底白字版本）
+    if (!list.find(t => t.templateId === 'multi_02_blue')) {
+      list = [...list, {
+        id: 'multi_02_blue',
+        templateId: 'multi_02_blue',
+        colorScheme: 'BLUE',
+        previewPath: null
+      }]
+    }
+    templateList.value = list.sort((a, b) => {
+      const order = ['multi_01', 'single_01', 'multi_02', 'multi_01_blue', 'single_01_blue', 'multi_02_blue']
+      return order.indexOf(a.templateId) - order.indexOf(b.templateId)
+    }).map(t => {
+      // 统一模板名称为方案6命名
+      const nameMap = {
+        'multi_01': '多岗招聘 M01',
+        'single_01': '单岗位 S01',
+        'multi_02': '多岗招聘 M02',
+        'multi_01_blue': '多岗招聘 M01B',
+        'single_01_blue': '单岗位 S01B',
+        'multi_02_blue': '多岗招聘 M02B'
+      }
+      if (nameMap[t.templateId]) {
+        t.templateName = nameMap[t.templateId]
+      }
+      return t
+    })
     // 根据当前模式默认选中第一个模板
     if (!selectedTemplate.value) {
       if (mode.value === 'single') {
@@ -1075,8 +1172,12 @@ const getTemplateDesc = (templateId) => {
   const descs = {
     'tech_01': '深蓝科技风格，适合现代企业',
     'admin_01': '商务蓝白风格，简洁专业',
-    'multi_01': '多岗位组合展示，4行表格',
-    'multi_02': '多岗位招聘，7行表格，大容量'
+    'single_01': '单岗位详情展示，白底蓝字',
+    'single_01_blue': '单岗位详情展示，深蓝底白字',
+    'multi_01': '多岗位组合展示，白底蓝字，4行表格',
+    'multi_01_blue': '多岗位组合展示，深蓝底白字，4行表格',
+    'multi_02': '多岗位左右分栏，白底蓝字，7行表格',
+    'multi_02_blue': '多岗位左右分栏，深蓝底白字，7行表格'
   }
   return descs[templateId] || ''
 }
@@ -1134,10 +1235,10 @@ const handleGenerate = async () => {
   generating.value = true
   try {
     const colorScheme = selectedTemplate.value.colorScheme
-    // single_01 使用 html2canvas 渲染 HTML 模板生成 PNG
-    if (selectedTemplate.value.templateId === 'single_01') {
+    // single_01 和 single_01_blue 使用 html2canvas 渲染 HTML 模板生成 PNG
+    if (selectedTemplate.value.templateId === 'single_01' || selectedTemplate.value.templateId === 'single_01_blue') {
       await loadLogoBase64()
-      const htmlContent = single01HtmlTemplate({
+      const templateData = {
         company: formData.company || '',
         jobs: [{
           jobTitle: formData.jobTitle || '',
@@ -1151,7 +1252,10 @@ const handleGenerate = async () => {
         contactName: formData.contactName || '',
         contactPhone: formData.contactPhone || '',
         logoBase64: logoBase64Cache.value || ''
-      })
+      }
+      const htmlContent = selectedTemplate.value.templateId === 'single_01_blue'
+        ? single01BlueHtmlTemplate(templateData)
+        : single01HtmlTemplate(templateData)
       // 创建隐藏容器渲染
       const container = document.createElement('div')
       container.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1920px;height:1080px;overflow:hidden;'
@@ -1164,12 +1268,13 @@ const handleGenerate = async () => {
           if (img.complete) return Promise.resolve()
           return new Promise(resolve => { img.onload = resolve; img.onerror = resolve })
         }))
+        const isBlueTemplate = selectedTemplate.value.templateId === 'single_01_blue'
         const canvas = await html2canvas(container, {
           width: 1920, height: 1080, scale: 1,
-          useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false
+          useCORS: true, allowTaint: true, backgroundColor: isBlueTemplate ? '#1a3a5c' : '#ffffff', logging: false
         })
         const pngBase64 = canvas.toDataURL('image/png', 1.0).replace(/^data:image\/\w+;base64,/, '')
-        const res = await uploadPngPoster(pngBase64, formData.title || '海报_' + formData.jobTitle, selectedTemplate.value.id, [formData.jobId])
+        const res = await uploadPngPoster(pngBase64, `${formData.company || '公司名称'}-${selectedTemplate.value?.templateName || '海报'}`, selectedTemplate.value.id, [formData.jobId])
         resultImage.value = '/files' + (res.data?.filePath || res.data)
         resultVisible.value = true
         ElMessage.success('海报生成成功')
@@ -1291,25 +1396,6 @@ const buildFormDataFromJob = (job) => ({
   contactPhone: job.contactPhone || ''
 })
 
-const getSvgForJob = (jobFormData) => {
-  // multi_01 模板有自己独立的渲染逻辑（多岗位）
-  if (selectedTemplate.value.templateId === 'multi_01') {
-    return renderTemplate('multi_01', jobFormData)
-  }
-  const colorScheme = selectedTemplate.value.colorScheme || 'BLUE'
-  if (colorScheme === 'BLUE' || colorScheme === 'GREEN') {
-    const templateId = selectedTemplate.value.templateId || 'tech_01'
-    return renderTemplate(templateId, jobFormData)
-  }
-  // ORANGE 内联 SVG（复用同一函数，临时替换 formData）
-  const saved = { ...formData }
-  Object.assign(formData, jobFormData)
-  const svg = getSvgTemplateByColorScheme(colorScheme)
-  Object.assign(formData, saved)
-  return svg
-}
-
-
 /**
  * 使用 HTML+CSS 方式生成多岗位海报
  * @param {Array} jobs - 职位详情数组
@@ -1336,12 +1422,18 @@ const generateHtmlPoster = async (jobs, posterName, templateId) => {
     contactName: jobs[0]?.contactName || '',
     contactPhone: jobs[0]?.contactPhone || '',
     logoBase64: logoBase64Cache.value || '',
-    selectedIndex: templateId === 'multi_02' ? multi02SelectedIndex.value : 0
+    selectedIndex: (templateId === 'multi_02' || templateId === 'multi_02_blue') ? multi02SelectedIndex.value : 0
   }
 
   // 生成 HTML
   if (templateId === 'single_01') {
     var htmlContent = single01HtmlTemplate(htmlData)
+  } else if (templateId === 'single_01_blue') {
+    htmlContent = single01BlueHtmlTemplate(htmlData)
+  } else if (templateId === 'multi_01_blue') {
+    htmlContent = multi01BlueHtmlTemplate(htmlData)
+  } else if (templateId === 'multi_02_blue') {
+    htmlContent = multi02BlueHtmlTemplate(htmlData)
   } else {
     htmlContent = templateId === 'multi_02' ? multi02HtmlTemplate(htmlData) : multi01HtmlTemplate(htmlData)
   }
@@ -1365,13 +1457,15 @@ const generateHtmlPoster = async (jobs, posterName, templateId) => {
     }))
 
     // 使用 html2canvas 渲染
+    // 蓝色背景模板需要使用对应背景色，否则白色背景会覆盖
+    const isBlueTemplate = ['single_01_blue', 'multi_01_blue', 'multi_02_blue'].includes(templateId)
     const canvas = await html2canvas(container, {
       width: 1920,
       height: 1080,
       scale: 1,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#ffffff',
+      backgroundColor: isBlueTemplate ? '#1a3a5c' : '#ffffff',
       logging: false
     })
 
@@ -1404,20 +1498,11 @@ const handleBatchGenerate = async () => {
   }
 
   const templateId = selectedTemplate.value?.templateId
-  const isMultiTemplate = ['multi_01', 'multi_02'].includes(templateId)
+  const isMultiTemplate = ['multi_01', 'multi_02', 'multi_01_blue', 'multi_02_blue'].includes(templateId)
 
-  // 多岗位模板校验：必须同一家公司
+  // 多岗位模板：每张海报的岗位数 multi_01/multi_01_blue=4行，multi_02/multi_02_blue=7行
   if (isMultiTemplate) {
-    const companies = [...new Set(batchSelectedJobs.value.map(j => j.company))]
-    if (companies.length > 1) {
-      ElMessage.warning('多岗位海报只能选择同一家公司的职位，请重新选择')
-      return
-    }
-  }
-
-  // 多岗位模板：每张海报的岗位数 multi_01=4行，multi_02=7行
-  if (isMultiTemplate) {
-    const chunkSize = templateId === 'multi_02' ? 7 : 4
+    const chunkSize = (templateId === 'multi_02' || templateId === 'multi_02_blue') ? 7 : 4
     const chunks = []
     for (let i = 0; i < batchSelectedJobs.value.length; i += chunkSize) {
       chunks.push(batchSelectedJobs.value.slice(i, i + chunkSize))
@@ -1440,9 +1525,14 @@ const handleBatchGenerate = async () => {
       const chunk = chunks[i]
       batchProgressList.value[i].status = 'loading'
       try {
+        // 每张海报单独校验：同一张海报内的岗位必须是同一家公司
+        const chunkCompanies = [...new Set(chunk.map(j => j.company))]
+        if (chunkCompanies.length > 1) {
+          throw new Error('同一张海报只能选择同一家公司的职位')
+        }
         const jobDetails = await Promise.all(chunk.map(job => getJobDetail(job.id)))
         const jobs = jobDetails.map(res => res.data)
-        const posterName = `${batchSelectedJobs.value[0]?.company || '公司名称'}-多岗位招聘（第${i + 1}张）`
+        const posterName = `${chunk[0]?.company || '公司名称'}-${selectedTemplate.value?.templateName || '海报'}`
 
         // 使用 HTML+CSS 方式生成海报
         await generateHtmlPoster(jobs, posterName, templateId)
@@ -1482,19 +1572,9 @@ const handleBatchGenerate = async () => {
       const detailRes = await getJobDetail(job.id)
       const jobDetail = detailRes.data
       const jobFormData = buildFormDataFromJob(jobDetail)
-      let svgContent = getSvgForJob(jobFormData)
-      // 替换 logo 相对路径为 Base64（Batik 只能处理自包含的 SVG）
-      svgContent = svgContent.replace(
-        /href="\/tv-files\/templates\/icons\/recruit-logo\.jpg"/g,
-        logoBase64Cache.value ? `href="${logoBase64Cache.value}"` : 'href=""'
-      )
-
-      await generatePoster({
-        templateId: selectedTemplate.value.id,
-        jobId: job.id,
-        posterName: jobFormData.title,
-        svgContent
-      })
+      // 单岗位海报使用 HTML 模板 + html2canvas 生成（与预览一致）
+      const posterName = `${jobDetail.company || '公司名称'}-${selectedTemplate.value?.templateName || '海报'}`
+      await generateHtmlPoster([jobDetail], posterName, selectedTemplate.value.templateId)
       batchProgressList.value[i].status = 'success'
     } catch (error) {
       batchProgressList.value[i].status = 'error'
@@ -1612,16 +1692,32 @@ watch(batchJobList, () => {
 
   // 模板选择器
   .template-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
+    .template-group {
+      margin-bottom: 16px;
+      &:last-child { margin-bottom: 0; }
+    }
+    .template-group-title {
+      font-size: 13px;
+      color: #606266;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      .group-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        &.white { background: #61c5f2; }
+        &.blue { background: #1a3a5c; }
+      }
+    }
     .template-card {
       border: 2px solid #e4e7ed;
       border-radius: 10px;
-      padding: 16px 20px;
+      padding: 14px 16px;
       cursor: pointer;
       transition: all 0.25s;
+      margin-bottom: 10px;
 
       &:hover {
         border-color: #409eff;
@@ -1637,7 +1733,7 @@ watch(batchJobList, () => {
       .template-card-header {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
 
         .template-color-dot {
           width: 12px;
@@ -1650,7 +1746,7 @@ watch(batchJobList, () => {
           flex: 1;
 
           .template-card-name {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #303133;
           }

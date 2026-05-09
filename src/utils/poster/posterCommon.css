@@ -1,0 +1,240 @@
+/**
+ * 海报公共样式
+ * 所有模板共享的基础样式
+ */
+
+/* ===== 基础重置 ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ===== body 基础样式 ===== */
+.body-base {
+  width: 1920px;
+  height: 1080px;
+  font-family: '宋体', 'SimSun', serif;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== 海报容器 ===== */
+.poster {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ===== 内容区域 ===== */
+.content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 顶部区域 ===== */
+.header {
+  display: flex;
+  align-items: center;
+  height: 160px;
+  flex-shrink: 0;
+  padding: 0 30px;
+}
+
+/* ===== Logo ===== */
+.logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.logo-placeholder {
+  width: 140px;
+  height: 140px;
+  background: #f0f0f0;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* ===== 公司名称 ===== */
+.company-name {
+  flex: 1;
+  text-align: center;
+  font-size: 72px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  padding-right: 160px;
+}
+
+/* ===== 表格容器 ===== */
+.table-container {
+  padding: 0;
+  flex: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ===== 通用表格样式 ===== */
+.job-table {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 30px;
+}
+
+.job-table th,
+.job-table td {
+  border: 1px solid;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.job-table thead {
+  background: #f0f7fc;
+}
+
+.job-table th {
+  height: 65px;
+  font-weight: bold;
+  font-family: '宋体', 'SimSun', serif;
+}
+
+.job-table td {
+  font-weight: normal;
+  line-height: 1.5;
+  font-family: '宋体', 'SimSun', serif;
+}
+
+/* 福利待遇：左对齐 */
+.job-table td.cell-welfare {
+  text-align: left;
+  padding: 10px 20px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 单元格宽度 */
+.cell-post { width: 230px; }
+.cell-count { width: 190px; }
+.cell-salary { width: 200px; }
+.cell-education { width: 200px; }
+
+/* ===== 底部信息栏 ===== */
+.footer {
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 30px !important;
+  margin: 0 !important;
+  border-top: 1px solid !important;
+  font-size: 35px !important;
+  font-weight: normal !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+  flex-wrap: nowrap !important;
+  overflow: visible !important;
+  flex-shrink: 0 !important;
+  font-family: '宋体', 'SimSun', serif !important;
+}
+
+.footer-left {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+.footer-right {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  gap: 24px !important;
+}
+
+.footer-label {
+  font-size: 35px !important;
+  font-weight: bold !important;
+  font-family: '宋体', 'SimSun', serif !important;
+}
+
+.footer-value {
+  font-size: 35px !important;
+  font-weight: normal !important;
+  margin-right: 8px !important;
+  font-family: '宋体', 'SimSun', serif !important;
+}
+
+.footer-right .footer-value {
+  margin-right: 0 !important;
+}
+
+/* ===== 主内容区（多岗2模板） ===== */
+.main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.left-table-area {
+  flex: 1.8;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.right-detail-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 30px;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* ===== 右侧详情区 ===== */
+.detail-pair {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-label {
+  font-size: 35px;
+  font-weight: bold;
+  text-align: left;
+  flex-shrink: 0;
+  font-family: '宋体', 'SimSun', serif;
+}
+
+.detail-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid;
+  padding: 10px 14px;
+}
+
+.detail-content {
+  flex: 1;
+  font-size: 28px;
+  line-height: 1.5;
+  word-break: break-word;
+  text-align: left;
+  overflow: hidden;
+  font-weight: normal;
+  font-family: '宋体', 'SimSun', serif;
+}
